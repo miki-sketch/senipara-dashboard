@@ -57,7 +57,8 @@ const TIP = {
   borderRadius: 8, padding: '8px 14px', fontSize: 14,
 };
 
-const CHART_H = 200;
+const CHART_H = 240;
+const PIE_H = 280;
 
 const Dashboard = ({ onLogout }) => {
   const { loading, error, stats } = useSurvey();
@@ -118,25 +119,23 @@ const Dashboard = ({ onLogout }) => {
           {/* Q2: 来場経路 */}
           <StatCard title={`Q2　${stats.q2.label}`}>
             <p style={styles.note}>※複数回答あり</p>
-            <div style={styles.scrollArea}>
-              <ResponsiveContainer width="100%" height={Math.max(CHART_H, stats.q2.data.length * 32 + 24)}>
-                <BarChart data={stats.q2.data} layout="vertical" margin={{ top: 4, right: 36, left: 4, bottom: 4 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#eef" horizontal={false} />
-                  <XAxis type="number" tick={{ fontSize: 12 }} allowDecimals={false} />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={130} />
-                  <Tooltip content={<BarTip />} />
-                  <Bar dataKey="value" fill="#16a34a" radius={[0, 4, 4, 0]}
-                    label={{ position: 'right', fontSize: 12, fill: '#1a3a5c', fontWeight: 700 }} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            <ResponsiveContainer width="100%" height={Math.max(CHART_H, stats.q2.data.length * 36 + 24)}>
+              <BarChart data={stats.q2.data} layout="vertical" margin={{ top: 4, right: 48, left: 4, bottom: 4 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#eef" horizontal={false} />
+                <XAxis type="number" tick={{ fontSize: 12 }} allowDecimals={false} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={140} />
+                <Tooltip content={<BarTip />} />
+                <Bar dataKey="value" fill="#16a34a" radius={[0, 4, 4, 0]}
+                  label={{ position: 'right', fontSize: 12, fill: '#1a3a5c', fontWeight: 700 }} />
+              </BarChart>
+            </ResponsiveContainer>
           </StatCard>
 
           {/* Q3: 来場回数 */}
           <StatCard title={`Q3　${stats.q3.label}`}>
-            <ResponsiveContainer width="100%" height={CHART_H}>
-              <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
-                <Pie data={stats.q3.data} cx="50%" cy="42%" outerRadius={62}
+            <ResponsiveContainer width="100%" height={PIE_H}>
+              <PieChart>
+                <Pie data={stats.q3.data} cx="50%" cy="40%" outerRadius={80}
                   dataKey="value" labelLine={false} label={renderCustomLabel}>
                   {stats.q3.data.map((_, i) => (
                     <Cell key={i} fill={COLORS[i % COLORS.length]} />
@@ -168,11 +167,11 @@ const Dashboard = ({ onLogout }) => {
           </StatCard>
 
           {/* Q5: 印象に残った曲 */}
-          <StatCard title={`Q5　${stats.q5.label}`} style={{ gridRow: 'span 1' }}>
+          <StatCard title={`Q5　${stats.q5.label}`}>
             {stats.q5.data.length === 0 ? (
               <p style={{ color: '#999' }}>データがありません</p>
             ) : (
-              <ol style={{ ...styles.rankList, ...styles.scrollArea }}>
+              <ol style={styles.rankList}>
                 {stats.q5.data.map((item, i) => (
                   <li key={i} style={styles.rankItem}>
                     <span style={{
@@ -192,9 +191,9 @@ const Dashboard = ({ onLogout }) => {
 
           {/* Q6: 定演来場意向 */}
           <StatCard title={`Q6　${stats.q6.label}`}>
-            <ResponsiveContainer width="100%" height={CHART_H}>
-              <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
-                <Pie data={stats.q6.data} cx="50%" cy="42%" outerRadius={62}
+            <ResponsiveContainer width="100%" height={PIE_H}>
+              <PieChart>
+                <Pie data={stats.q6.data} cx="50%" cy="40%" outerRadius={80}
                   dataKey="value" labelLine={false} label={renderCustomLabel}>
                   {stats.q6.data.map((_, i) => (
                     <Cell key={i} fill={COLORS[i % COLORS.length]} />
@@ -211,7 +210,7 @@ const Dashboard = ({ onLogout }) => {
             {stats.q7.list.length === 0 ? (
               <p style={{ color: '#999' }}>回答がありません</p>
             ) : (
-              <ul style={{ ...styles.commentList, ...styles.scrollArea }}>
+              <ul style={{ ...styles.commentList, maxHeight: 360, overflowY: 'auto' }}>
                 {stats.q7.list.map((text, i) => (
                   <li key={i} style={styles.commentItem}>
                     <span style={styles.commentIndex}>{i + 1}</span>
@@ -230,11 +229,10 @@ const Dashboard = ({ onLogout }) => {
 
 const styles = {
   bg: {
-    height: '100vh',
+    minHeight: '100vh',
     display: 'flex',
     flexDirection: 'column',
     background: '#f0f4fa',
-    overflow: 'hidden',
   },
   center: {
     height: '100vh',
@@ -286,10 +284,7 @@ const styles = {
     cursor: 'pointer',
   },
   main: {
-    flex: 1,
-    minHeight: 0,
-    overflow: 'hidden',
-    padding: '12px 16px',
+    padding: '16px',
     maxWidth: 1280,
     width: '100%',
     margin: '0 auto',
@@ -298,14 +293,7 @@ const styles = {
   grid: {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
-    gap: '12px',
-    height: '100%',
-    gridTemplateRows: 'repeat(3, 1fr) auto',
-  },
-  scrollArea: {
-    overflowY: 'auto',
-    flex: 1,
-    minHeight: 0,
+    gap: '16px',
   },
   note: { margin: '0 0 6px', fontSize: 12, color: '#7a9ab8' },
   avgRow: {

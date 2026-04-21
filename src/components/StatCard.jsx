@@ -13,7 +13,6 @@ const styles = {
     padding: '16px 18px',
     display: 'flex',
     flexDirection: 'column',
-    overflow: 'hidden',
   },
   title: {
     fontSize: '15px',
@@ -27,8 +26,6 @@ const styles = {
   body: {
     fontSize: '15px',
     color: '#333',
-    flex: 1,
-    minHeight: 0,
   },
 };
 
