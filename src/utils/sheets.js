@@ -18,10 +18,16 @@ export const fetchSheet = async (sheetName) => {
 export const fetchCredentials = async () => {
   const data = await fetchSheet('SETTINGS');
   const rows = data.table.rows;
-  // B3 = USER (row index 2, col index 1), B4 = PASS (row index 3, col index 1)
-  const user = rows[2]?.c[1]?.v ?? '';
-  const pass = rows[3]?.c[1]?.v ?? '';
-  return { user: String(user), pass: String(pass) };
+  const cols = data.table.cols;
+
+  // C1: DASHBOARD_USER  D1: value → row[0].c[3]
+  // C2: DASHBOARD_PASS  D2: value → row[1].c[3]
+  const rawUser = rows[0]?.c[3]?.v;
+  const rawPass = rows[1]?.c[3]?.v;
+
+  const user = rawUser != null ? String(rawUser).trim() : '';
+  const pass = rawPass != null ? String(rawPass).trim() : '';
+  return { user, pass };
 };
 
 export const fetchSurveyData = async () => {

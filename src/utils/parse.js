@@ -24,7 +24,7 @@ export const countMultiSelect = (arr) => {
 
 export const toChartData = (counts) =>
   Object.entries(counts)
-    .sort((a, b) => b[1] - a[1])
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'ja'))
     .map(([name, value]) => ({ name, value }));
 
 // Parse numeric values, skip nulls/blanks

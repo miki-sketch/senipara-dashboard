@@ -13,7 +13,8 @@ const LoginPage = ({ onLogin }) => {
     setLoading(true);
     try {
       const creds = await fetchCredentials();
-      if (user.trim() === creds.user && pass === creds.pass) {
+
+if (user.trim() === creds.user && pass.trim() === creds.pass) {
         onLogin();
       } else {
         setError('ユーザー名またはパスワードが正しくありません');

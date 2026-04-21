@@ -1,5 +1,5 @@
-const StatCard = ({ title, children }) => (
-  <div style={styles.card}>
+const StatCard = ({ title, children, style }) => (
+  <div style={{ ...styles.card, ...style }}>
     <h2 style={styles.title}>{title}</h2>
     <div style={styles.body}>{children}</div>
   </div>
@@ -8,22 +8,27 @@ const StatCard = ({ title, children }) => (
 const styles = {
   card: {
     background: '#fff',
-    borderRadius: '14px',
-    boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
-    padding: '28px 24px',
-    marginBottom: '24px',
+    borderRadius: '12px',
+    boxShadow: '0 2px 10px rgba(0,0,0,0.07)',
+    padding: '16px 18px',
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
   },
   title: {
-    fontSize: '18px',
+    fontSize: '15px',
     fontWeight: '700',
     color: '#1a3a5c',
-    margin: '0 0 20px',
-    paddingBottom: '12px',
+    margin: '0 0 12px',
+    paddingBottom: '10px',
     borderBottom: '2px solid #e8f0f8',
+    flexShrink: 0,
   },
   body: {
-    fontSize: '16px',
+    fontSize: '15px',
     color: '#333',
+    flex: 1,
+    minHeight: 0,
   },
 };
 
