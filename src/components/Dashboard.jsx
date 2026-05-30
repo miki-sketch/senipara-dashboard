@@ -151,13 +151,13 @@ const Dashboard = ({ onLogout }) => {
           <StatCard title={`Q4　${stats.q4.label}`}>
             <div style={styles.avgRow}>
               <span style={styles.avgNum}>{stats.q4.avg.toFixed(2)}</span>
-              <span style={styles.avgDenom}>/ {Math.max(...stats.q4.nums.map(Number), 5)} 点</span>
+              <span style={styles.avgDenom}>/ 5 点</span>
               <span style={styles.avgSub}>平均（{stats.q4.nums.length} 件）</span>
             </div>
             <ResponsiveContainer width="100%" height={130}>
               <BarChart data={stats.q4.dist} margin={{ top: 12, right: 12, left: -16, bottom: 4 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#eef" />
-                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
                 <Tooltip content={<BarTip />} />
                 <Bar dataKey="value" fill="#d97706" radius={[4, 4, 0, 0]}

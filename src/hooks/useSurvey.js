@@ -35,12 +35,14 @@ export const useSurvey = () => {
         const q3Data = toChartData(q3Counts);
 
         // Q4: 満足度
+        const Q4_LABELS = ['不満足', '物足りない', '普通', 'よかった', '大満足'];
         const q4Nums = parseNumbers(rows.map((r) => r[q4Key]));
         const q4Avg = average(q4Nums);
         const q4DistCounts = countBy(q4Nums.map((n) => String(n)));
-        const q4DistData = Object.entries(q4DistCounts)
-          .sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]))
-          .map(([name, value]) => ({ name, value }));
+        const q4DistData = Q4_LABELS.map((label, i) => ({
+          name: label,
+          value: q4DistCounts[String(i + 1)] ?? 0,
+        }));
 
         // Q5: 印象に残った曲（複数選択可）
         const q5Counts = countMultiSelect(rows.map((r) => r[q5Key]));
