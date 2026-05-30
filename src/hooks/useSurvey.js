@@ -35,7 +35,7 @@ export const useSurvey = () => {
         const q3Data = toChartData(q3Counts);
 
         // Q4: 満足度（数字1〜5と文字ラベル両対応）
-        const Q4_LABELS = ['不満足', '物足りない', '普通', 'よかった', '大満足'];
+        const Q4_LABELS = ['不満足(1)', '物足りない(2)', '普通(3)', 'よかった(4)', '大満足(5)'];
         const Q4_TEXT_MAP = { '不満足': 1, '物足りない': 2, '普通': 3, 'よかった': 4, '大満足': 5 };
         const q4Nums = rows.map((r) => {
           const v = r[q4Key];
