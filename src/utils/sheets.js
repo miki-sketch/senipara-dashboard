@@ -37,7 +37,10 @@ export const fetchSurveyData = async () => {
   const rows = table.rows.map((r) => {
     const obj = {};
     r.c.forEach((cell, i) => {
-      obj[cols[i]] = cell?.v ?? null;
+      // Skip duplicate column names — keep only the first occurrence
+      if (!(cols[i] in obj)) {
+        obj[cols[i]] = cell?.v ?? null;
+      }
     });
     return obj;
   });

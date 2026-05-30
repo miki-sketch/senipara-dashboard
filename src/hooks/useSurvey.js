@@ -34,14 +34,22 @@ export const useSurvey = () => {
         const q3Counts = countBy(rows.map((r) => r[q3Key]));
         const q3Data = toChartData(q3Counts);
 
-        // Q4: 満足度
+        // Q4: 満足度（数字1〜5と文字ラベル両対応）
         const Q4_LABELS = ['不満足', '物足りない', '普通', 'よかった', '大満足'];
-        const q4Nums = parseNumbers(rows.map((r) => r[q4Key]));
+        const Q4_TEXT_MAP = { '不満足': 1, '物足りない': 2, '普通': 3, 'よかった': 4, '大満足': 5 };
+        const q4Nums = rows.map((r) => {
+          const v = r[q4Key];
+          if (v == null) return NaN;
+          const n = parseFloat(v);
+          if (!isNaN(n)) return n;
+          return Q4_TEXT_MAP[String(v).trim()] ?? NaN;
+        }).filter((v) => !isNaN(v));
         const q4Avg = average(q4Nums);
-        const q4DistCounts = countBy(q4Nums.map((n) => String(n)));
+        const q4DistCounts = {};
+        q4Nums.forEach((n) => { q4DistCounts[n] = (q4DistCounts[n] ?? 0) + 1; });
         const q4DistData = Q4_LABELS.map((label, i) => ({
           name: label,
-          value: q4DistCounts[String(i + 1)] ?? 0,
+          value: q4DistCounts[i + 1] ?? 0,
         }));
 
         // Q5: 印象に残った曲（複数選択可）
