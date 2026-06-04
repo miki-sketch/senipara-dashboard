@@ -87,25 +87,24 @@ export const useSurvey = () => {
         // Q5 & Q6: 曲の人気ランキング（Q5:複数選択 + Q6:自由記述名寄せ）
         const q5Counts = countMultiSelect(rows.map((r) => r[q5Key]));
         const q6Normalized = {};
-        const q6NormalizedTexts = {};
+        const q6RowsByCanonical = {};
         const q6OtherList = [];
         rows.forEach((r) => {
           const v = r[q6Key];
           if (v == null || String(v).trim() === '') return;
-          const text = String(v).trim();
           const canonical = normalizeQ6(v);
           if (canonical) {
             q6Normalized[canonical] = (q6Normalized[canonical] ?? 0) + 1;
-            q6NormalizedTexts[canonical] = [...(q6NormalizedTexts[canonical] ?? []), text];
+            q6RowsByCanonical[canonical] = [...(q6RowsByCanonical[canonical] ?? []), r];
           } else {
-            q6OtherList.push(text);
+            q6OtherList.push(String(v).trim());
           }
         });
         const songRankingRows = CANONICAL_SONGS.map((name) => ({
           name,
           q5Count: q5Counts[name] ?? 0,
           q6Count: q6Normalized[name] ?? 0,
-          q6Texts: q6NormalizedTexts[name] ?? [],
+          q6Rows: q6RowsByCanonical[name] ?? [],
         })).sort((a, b) => b.q5Count - a.q5Count || b.q6Count - a.q6Count);
 
         // Q7: 定演来場意向

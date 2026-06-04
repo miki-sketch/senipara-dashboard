@@ -14,6 +14,7 @@ import {
 } from 'recharts';
 import { useSurvey } from '../hooks/useSurvey';
 import StatCard from './StatCard';
+import { countBy, countMultiSelect, toChartData } from '../utils/parse';
 
 const COLORS = [
   '#2563eb', '#16a34a', '#dc2626', '#d97706', '#7c3aed',
@@ -60,6 +61,86 @@ const TIP = {
 
 const CHART_H = 240;
 const PIE_H = 280;
+
+const Q4_MINI_MAP = { '不満足': 1, '物足りない': 2, '普通': 3, 'よかった': 4, '大満足': 5 };
+const MINI_TH = { margin: '0 0 2px', fontSize: 11, fontWeight: 700, color: '#1a3a5c' };
+
+const SongProfile = ({ rows, q1Key, q2Key, q3Key, q4Key, songName }) => {
+  const q1Data = toChartData(countBy(rows.map((r) => r[q1Key])));
+  const q2Data = toChartData(countMultiSelect(rows.map((r) => r[q2Key])));
+  const q3Data = toChartData(countBy(rows.map((r) => r[q3Key])));
+  const q4Dist = {};
+  rows.forEach((r) => {
+    const v = r[q4Key];
+    if (v == null) return;
+    const n = parseFloat(v);
+    const num = !isNaN(n) ? n : (Q4_MINI_MAP[String(v).trim()] ?? null);
+    if (num != null) q4Dist[num] = (q4Dist[num] ?? 0) + 1;
+  });
+  const q4Data = [1, 2, 3, 4, 5].map((i) => ({ name: `${i}点`, value: q4Dist[i] ?? 0 }));
+
+  return (
+    <div>
+      <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: '#5b21b6' }}>
+        「{songName}」を特に1番に選んだ方のプロフィール（{rows.length} 件）
+      </p>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 20px' }}>
+        <div>
+          <p style={MINI_TH}>Q1 年代</p>
+          <ResponsiveContainer width="100%" height={120}>
+            <BarChart data={q1Data} margin={{ top: 10, right: 8, left: -24, bottom: 28 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#eef" />
+              <XAxis dataKey="name" tick={{ fontSize: 9 }} angle={-25} textAnchor="end" interval={0} />
+              <YAxis tick={{ fontSize: 9 }} allowDecimals={false} />
+              <Tooltip content={<BarTip />} />
+              <Bar dataKey="value" fill="#2563eb" radius={[2, 2, 0, 0]}
+                label={{ position: 'top', fontSize: 9, fill: '#1a3a5c' }} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        <div>
+          <p style={MINI_TH}>Q2 来場経路</p>
+          <ResponsiveContainer width="100%" height={Math.max(100, q2Data.length * 20 + 16)}>
+            <BarChart data={q2Data} layout="vertical" margin={{ top: 4, right: 28, left: 4, bottom: 4 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#eef" horizontal={false} />
+              <XAxis type="number" tick={{ fontSize: 9 }} allowDecimals={false} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 9 }} width={110} />
+              <Tooltip content={<BarTip />} />
+              <Bar dataKey="value" fill="#16a34a" radius={[0, 2, 2, 0]}
+                label={{ position: 'right', fontSize: 9, fill: '#1a3a5c' }} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        <div>
+          <p style={MINI_TH}>Q3 来場回数</p>
+          <ResponsiveContainer width="100%" height={120}>
+            <BarChart data={q3Data} margin={{ top: 10, right: 8, left: -24, bottom: 28 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#eef" />
+              <XAxis dataKey="name" tick={{ fontSize: 9 }} angle={-25} textAnchor="end" interval={0} />
+              <YAxis tick={{ fontSize: 9 }} allowDecimals={false} />
+              <Tooltip content={<BarTip />} />
+              <Bar dataKey="value" fill="#0891b2" radius={[2, 2, 0, 0]}
+                label={{ position: 'top', fontSize: 9, fill: '#1a3a5c' }} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        <div>
+          <p style={MINI_TH}>Q4 満足度</p>
+          <ResponsiveContainer width="100%" height={120}>
+            <BarChart data={q4Data} margin={{ top: 10, right: 8, left: -24, bottom: 8 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#eef" />
+              <XAxis dataKey="name" tick={{ fontSize: 9 }} />
+              <YAxis tick={{ fontSize: 9 }} allowDecimals={false} />
+              <Tooltip content={<BarTip />} />
+              <Bar dataKey="value" fill="#d97706" radius={[2, 2, 0, 0]}
+                label={{ position: 'top', fontSize: 9, fill: '#1a3a5c' }} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const Dashboard = ({ onLogout }) => {
   const { loading, error, stats } = useSurvey();
@@ -220,12 +301,15 @@ const Dashboard = ({ onLogout }) => {
                     </tr>
                     {q6OpenSong === row.name && (
                       <tr style={styles.rankRowOther}>
-                        <td colSpan={4} style={{ padding: '4px 16px 12px' }}>
-                          <ul style={styles.otherList}>
-                            {row.q6Texts.map((text, j) => (
-                              <li key={j} style={styles.otherItem}>{text}</li>
-                            ))}
-                          </ul>
+                        <td colSpan={4} style={{ padding: '8px 20px 16px' }}>
+                          <SongProfile
+                            rows={row.q6Rows}
+                            q1Key={stats.q1.label}
+                            q2Key={stats.q2.label}
+                            q3Key={stats.q3.label}
+                            q4Key={stats.q4.label}
+                            songName={row.name}
+                          />
                         </td>
                       </tr>
                     )}
@@ -272,7 +356,7 @@ const Dashboard = ({ onLogout }) => {
           </StatCard>
 
           {/* Q8: 自由記述（全幅） */}
-          <StatCard title={`Q8　${stats.q8.label}`} style={{ gridColumn: '1 / -1' }}>
+          <StatCard title={`Q8　${stats.q8.label}`}>
             {stats.q8.list.length === 0 ? (
               <p style={{ color: '#999' }}>回答がありません</p>
             ) : (
