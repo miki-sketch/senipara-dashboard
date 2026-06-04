@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, Fragment } from 'react';
 import {
   BarChart,
   Bar,
@@ -64,6 +64,7 @@ const PIE_H = 280;
 const Dashboard = ({ onLogout }) => {
   const { loading, error, stats } = useSurvey();
   const [otherOpen, setOtherOpen] = useState(false);
+  const [q6OpenSong, setQ6OpenSong] = useState(null);
 
   if (loading) {
     return (
@@ -188,26 +189,47 @@ const Dashboard = ({ onLogout }) => {
               </thead>
               <tbody>
                 {stats.songRanking.rows.map((row, i) => (
-                  <tr key={row.name} style={i % 2 === 0 ? styles.rankRowEven : styles.rankRowOdd}>
-                    <td style={styles.rankTd}>
-                      <span style={{
-                        ...styles.rankBadge,
-                        background: i === 0 ? '#f59e0b' : i === 1 ? '#9ca3af' : i === 2 ? '#b45309' : '#e0e7ef',
-                        color: i < 3 ? '#fff' : '#2c4a6e',
-                      }}>
-                        {i + 1}
-                      </span>
-                    </td>
-                    <td style={{ ...styles.rankTd, textAlign: 'left', paddingLeft: 16, fontWeight: 600, color: '#1a3a5c' }}>
-                      {row.name}
-                    </td>
-                    <td style={{ ...styles.rankTd, color: '#2563eb', fontWeight: 700 }}>
-                      {row.q5Count > 0 ? `${row.q5Count} 票` : '—'}
-                    </td>
-                    <td style={{ ...styles.rankTd, color: '#7c3aed', fontWeight: 700 }}>
-                      {row.q6Count > 0 ? `${row.q6Count} 件` : '—'}
-                    </td>
-                  </tr>
+                  <Fragment key={row.name}>
+                    <tr style={i % 2 === 0 ? styles.rankRowEven : styles.rankRowOdd}>
+                      <td style={styles.rankTd}>
+                        <span style={{
+                          ...styles.rankBadge,
+                          background: i === 0 ? '#f59e0b' : i === 1 ? '#9ca3af' : i === 2 ? '#b45309' : '#e0e7ef',
+                          color: i < 3 ? '#fff' : '#2c4a6e',
+                        }}>
+                          {i + 1}
+                        </span>
+                      </td>
+                      <td style={{ ...styles.rankTd, textAlign: 'left', paddingLeft: 16, fontWeight: 600, color: '#1a3a5c' }}>
+                        {row.name}
+                      </td>
+                      <td style={{ ...styles.rankTd, color: '#2563eb', fontWeight: 700 }}>
+                        {row.q5Count > 0 ? `${row.q5Count} 票` : '—'}
+                      </td>
+                      <td style={{ ...styles.rankTd, color: '#7c3aed', fontWeight: 700 }}>
+                        {row.q6Count > 0 ? (
+                          <button
+                            style={styles.q6CountBtn}
+                            onClick={() => setQ6OpenSong(q6OpenSong === row.name ? null : row.name)}
+                          >
+                            {row.q6Count} 件
+                            <span style={{ fontSize: 10 }}>{q6OpenSong === row.name ? '▲' : '▼'}</span>
+                          </button>
+                        ) : '—'}
+                      </td>
+                    </tr>
+                    {q6OpenSong === row.name && (
+                      <tr style={styles.rankRowOther}>
+                        <td colSpan={4} style={{ padding: '4px 16px 12px' }}>
+                          <ul style={styles.otherList}>
+                            {row.q6Texts.map((text, j) => (
+                              <li key={j} style={styles.otherItem}>{text}</li>
+                            ))}
+                          </ul>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 ))}
                 {stats.songRanking.otherList.length > 0 && (
                   <tr style={styles.rankRowOther}>
@@ -368,6 +390,13 @@ const styles = {
   rankRowEven: { background: '#fff' },
   rankRowOdd: { background: '#f8fafd' },
   rankRowOther: { background: '#faf5ff' },
+  q6CountBtn: {
+    background: 'none', border: 'none', cursor: 'pointer',
+    color: '#7c3aed', fontWeight: 700, fontSize: 14,
+    display: 'inline-flex', alignItems: 'center', gap: 4,
+    padding: '2px 6px', borderRadius: 4, textDecoration: 'underline',
+    textDecorationStyle: 'dotted', textUnderlineOffset: 3,
+  },
   otherToggle: {
     width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
     padding: '10px 16px', border: 'none', background: 'transparent',
