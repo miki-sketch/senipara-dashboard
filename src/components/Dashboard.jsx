@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   BarChart,
   Bar,
@@ -62,6 +63,7 @@ const PIE_H = 280;
 
 const Dashboard = ({ onLogout }) => {
   const { loading, error, stats } = useSurvey();
+  const [otherOpen, setOtherOpen] = useState(false);
 
   if (loading) {
     return (
@@ -166,27 +168,69 @@ const Dashboard = ({ onLogout }) => {
             </ResponsiveContainer>
           </StatCard>
 
-          {/* Q5: 印象に残った曲 */}
-          <StatCard title={`Q5　${stats.q5.label}`}>
-            {stats.q5.data.length === 0 ? (
-              <p style={{ color: '#999' }}>データがありません</p>
-            ) : (
-              <ol style={styles.rankList}>
-                {stats.q5.data.map((item, i) => (
-                  <li key={i} style={styles.rankItem}>
-                    <span style={{
-                      ...styles.rankBadge,
-                      background: i === 0 ? '#f59e0b' : i === 1 ? '#9ca3af' : i === 2 ? '#b45309' : '#e0e7ef',
-                      color: i < 3 ? '#fff' : '#2c4a6e',
-                    }}>
-                      {i + 1}
-                    </span>
-                    <span style={styles.rankName}>{item.name}</span>
-                    <span style={styles.rankCount}>{item.value} 票</span>
-                  </li>
+          {/* 曲の人気ランキング（Q5+Q6統合・全幅） */}
+          <StatCard title="曲の人気ランキング" style={{ gridColumn: '1 / -1' }}>
+            <p style={styles.note}>Q5: 印象に残った曲（複数回答） ／ Q6: 一番印象に残った1曲（自由記述）</p>
+            <table style={styles.rankTable}>
+              <thead>
+                <tr>
+                  <th style={styles.rankTh}>順位</th>
+                  <th style={{ ...styles.rankTh, textAlign: 'left', paddingLeft: 16 }}>曲名</th>
+                  <th style={styles.rankTh}>
+                    印象に残った<br />
+                    <span style={styles.rankThSub}>Q5・複数回答</span>
+                  </th>
+                  <th style={styles.rankTh}>
+                    特に1番<br />
+                    <span style={styles.rankThSub}>Q6・1択</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {stats.songRanking.rows.map((row, i) => (
+                  <tr key={row.name} style={i % 2 === 0 ? styles.rankRowEven : styles.rankRowOdd}>
+                    <td style={styles.rankTd}>
+                      <span style={{
+                        ...styles.rankBadge,
+                        background: i === 0 ? '#f59e0b' : i === 1 ? '#9ca3af' : i === 2 ? '#b45309' : '#e0e7ef',
+                        color: i < 3 ? '#fff' : '#2c4a6e',
+                      }}>
+                        {i + 1}
+                      </span>
+                    </td>
+                    <td style={{ ...styles.rankTd, textAlign: 'left', paddingLeft: 16, fontWeight: 600, color: '#1a3a5c' }}>
+                      {row.name}
+                    </td>
+                    <td style={{ ...styles.rankTd, color: '#2563eb', fontWeight: 700 }}>
+                      {row.q5Count > 0 ? `${row.q5Count} 票` : '—'}
+                    </td>
+                    <td style={{ ...styles.rankTd, color: '#7c3aed', fontWeight: 700 }}>
+                      {row.q6Count > 0 ? `${row.q6Count} 件` : '—'}
+                    </td>
+                  </tr>
                 ))}
-              </ol>
-            )}
+                {stats.songRanking.otherList.length > 0 && (
+                  <tr style={styles.rankRowOther}>
+                    <td colSpan={4} style={{ padding: 0 }}>
+                      <button
+                        style={styles.otherToggle}
+                        onClick={() => setOtherOpen((o) => !o)}
+                      >
+                        <span>その他（{stats.songRanking.otherList.length} 件）</span>
+                        <span style={{ fontSize: 11 }}>{otherOpen ? '▲ 閉じる' : '▼ 一覧を見る'}</span>
+                      </button>
+                      {otherOpen && (
+                        <ul style={styles.otherList}>
+                          {stats.songRanking.otherList.map((text, i) => (
+                            <li key={i} style={styles.otherItem}>{text}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </StatCard>
 
           {/* Q7: 定演来場意向 */}
@@ -203,22 +247,6 @@ const Dashboard = ({ onLogout }) => {
                 <Legend wrapperStyle={{ fontSize: 12 }} />
               </PieChart>
             </ResponsiveContainer>
-          </StatCard>
-
-          {/* Q6: 一番印象に残った1曲（全幅） */}
-          <StatCard title={`Q6　${stats.q6.label}`} style={{ gridColumn: '1 / -1' }}>
-            {stats.q6.list.length === 0 ? (
-              <p style={{ color: '#999' }}>回答がありません</p>
-            ) : (
-              <ul style={{ ...styles.commentList, maxHeight: 360, overflowY: 'auto' }}>
-                {stats.q6.list.map((text, i) => (
-                  <li key={i} style={{ ...styles.commentItem, borderLeftColor: '#7c3aed' }}>
-                    <span style={{ ...styles.commentIndex, color: '#7c3aed' }}>{i + 1}</span>
-                    <span style={styles.commentText}>{String(text)}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
           </StatCard>
 
           {/* Q8: 自由記述（全幅） */}
@@ -321,18 +349,38 @@ const styles = {
   avgNum: { fontSize: 36, fontWeight: 800, color: '#2563eb', lineHeight: 1 },
   avgDenom: { fontSize: 16, color: '#5a7a9a' },
   avgSub: { fontSize: 13, color: '#7a9ab8' },
-  rankList: { listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 6 },
-  rankItem: {
-    display: 'flex', alignItems: 'center', gap: 10,
-    padding: '7px 12px', background: '#f4f7fb', borderRadius: 8,
-  },
   rankBadge: {
     minWidth: 26, height: 26, borderRadius: '50%',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
     fontWeight: 800, fontSize: 13, flexShrink: 0,
   },
-  rankName: { flex: 1, fontSize: 14, color: '#1a3a5c', fontWeight: 600 },
-  rankCount: { fontSize: 14, color: '#2563eb', fontWeight: 700 },
+  rankTable: { width: '100%', borderCollapse: 'collapse', fontSize: 14 },
+  rankTh: {
+    padding: '8px 12px', background: '#e8eef7', color: '#1a3a5c',
+    fontWeight: 700, fontSize: 12, textAlign: 'center',
+    borderBottom: '2px solid #c5d3e8',
+  },
+  rankThSub: { fontSize: 10, fontWeight: 400, color: '#5a7a9a' },
+  rankTd: {
+    padding: '9px 12px', textAlign: 'center',
+    borderBottom: '1px solid #edf0f7', verticalAlign: 'middle',
+  },
+  rankRowEven: { background: '#fff' },
+  rankRowOdd: { background: '#f8fafd' },
+  rankRowOther: { background: '#faf5ff' },
+  otherToggle: {
+    width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    padding: '10px 16px', border: 'none', background: 'transparent',
+    cursor: 'pointer', fontSize: 14, fontWeight: 600, color: '#7c3aed',
+  },
+  otherList: {
+    listStyle: 'none', padding: '4px 16px 12px', margin: 0,
+    display: 'flex', flexWrap: 'wrap', gap: 6,
+  },
+  otherItem: {
+    padding: '3px 10px', background: '#ede9fe', borderRadius: 20,
+    fontSize: 13, color: '#5b21b6',
+  },
   commentList: {
     listStyle: 'none', padding: 0, margin: 0,
     display: 'flex', flexDirection: 'column', gap: 6,

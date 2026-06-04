@@ -2,6 +2,38 @@ import { useState, useEffect } from 'react';
 import { fetchSurveyData } from '../utils/sheets';
 import { countBy, countMultiSelect, toChartData, parseNumbers, average } from '../utils/parse';
 
+const CANONICAL_SONGS = [
+  '「カレリア組曲」より「行進曲風に」',
+  '詩的間奏曲',
+  'バレエ音楽「白鳥の湖」より「情景」',
+  '風紋',
+  '笑点のテーマ',
+  'トロンボナンザ',
+  'フライ・ミー・トゥ・ザ・ムーン',
+  'くるみ割り人形 in ポップス',
+  'アンコール',
+];
+
+const SONG_RULES = [
+  { keywords: ['ルパン', 'アンコール曲', 'アンコール'], canonical: 'アンコール' },
+  { keywords: ['フライミー', 'フライ・ミー'], canonical: 'フライ・ミー・トゥ・ザ・ムーン' },
+  { keywords: ['白鳥'], canonical: 'バレエ音楽「白鳥の湖」より「情景」' },
+  { keywords: ['笑点'], canonical: '笑点のテーマ' },
+  { keywords: ['くるみ'], canonical: 'くるみ割り人形 in ポップス' },
+  { keywords: ['カレリア', '行進曲'], canonical: '「カレリア組曲」より「行進曲風に」' },
+  { keywords: ['詩的', '間奏曲'], canonical: '詩的間奏曲' },
+  { keywords: ['風紋'], canonical: '風紋' },
+  { keywords: ['トロンボ'], canonical: 'トロンボナンザ' },
+];
+
+const normalizeQ6 = (text) => {
+  const t = String(text).trim();
+  for (const rule of SONG_RULES) {
+    if (rule.keywords.some((kw) => t.includes(kw))) return rule.canonical;
+  }
+  return null;
+};
+
 export const useSurvey = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -10,7 +42,6 @@ export const useSurvey = () => {
   useEffect(() => {
     fetchSurveyData()
       .then(({ cols, rows }) => {
-        // Identify columns by position (Q1=col1, Q2=col2 ... depending on form structure)
         // Columns: timestamp(0), Q1(1), Q2(2), Q3(3), Q4(4), Q5(5), Q6(6), Q7(7), Q8(8)
         const q1Key = cols[1];
         const q2Key = cols[2];
@@ -53,14 +84,25 @@ export const useSurvey = () => {
           value: q4DistCounts[i + 1] ?? 0,
         }));
 
-        // Q5: 印象に残った曲（複数選択可）
+        // Q5 & Q6: 曲の人気ランキング（Q5:複数選択 + Q6:自由記述名寄せ）
         const q5Counts = countMultiSelect(rows.map((r) => r[q5Key]));
-        const q5Data = toChartData(q5Counts).slice(0, 10);
-
-        // Q6: 一番印象に残った1曲（自由記述形式）
-        const q6List = rows
-          .map((r) => r[q6Key])
-          .filter((v) => v != null && String(v).trim() !== '');
+        const q6Normalized = {};
+        const q6OtherList = [];
+        rows.forEach((r) => {
+          const v = r[q6Key];
+          if (v == null || String(v).trim() === '') return;
+          const canonical = normalizeQ6(v);
+          if (canonical) {
+            q6Normalized[canonical] = (q6Normalized[canonical] ?? 0) + 1;
+          } else {
+            q6OtherList.push(String(v).trim());
+          }
+        });
+        const songRankingRows = CANONICAL_SONGS.map((name) => ({
+          name,
+          q5Count: q5Counts[name] ?? 0,
+          q6Count: q6Normalized[name] ?? 0,
+        })).sort((a, b) => b.q5Count - a.q5Count || b.q6Count - a.q6Count);
 
         // Q7: 定演来場意向
         const q7Counts = countBy(rows.map((r) => r[q7Key]));
@@ -78,8 +120,7 @@ export const useSurvey = () => {
           q2: { label: q2Key, data: q2Data },
           q3: { label: q3Key, data: q3Data },
           q4: { label: q4Key, avg: q4Avg, dist: q4DistData, nums: q4Nums },
-          q5: { label: q5Key, data: q5Data },
-          q6: { label: q6Key, list: q6List },
+          songRanking: { rows: songRankingRows, otherList: q6OtherList },
           q7: { label: q7Key, data: q7Data },
           q8: { label: q8Key, list: q8List },
         });
