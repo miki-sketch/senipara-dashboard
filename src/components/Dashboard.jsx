@@ -189,13 +189,13 @@ const Dashboard = ({ onLogout }) => {
             )}
           </StatCard>
 
-          {/* Q6: 定演来場意向 */}
-          <StatCard title={`Q6　${stats.q6.label}`}>
+          {/* Q7: 定演来場意向 */}
+          <StatCard title={`Q7　${stats.q7.label}`}>
             <ResponsiveContainer width="100%" height={PIE_H}>
               <PieChart>
-                <Pie data={stats.q6.data} cx="50%" cy="40%" outerRadius={80}
+                <Pie data={stats.q7.data} cx="50%" cy="40%" outerRadius={80}
                   dataKey="value" labelLine={false} label={renderCustomLabel}>
-                  {stats.q6.data.map((_, i) => (
+                  {stats.q7.data.map((_, i) => (
                     <Cell key={i} fill={COLORS[i % COLORS.length]} />
                   ))}
                 </Pie>
@@ -205,13 +205,29 @@ const Dashboard = ({ onLogout }) => {
             </ResponsiveContainer>
           </StatCard>
 
-          {/* Q7: 自由記述（全幅） */}
-          <StatCard title={`Q7　${stats.q7.label}`} style={{ gridColumn: '1 / -1' }}>
-            {stats.q7.list.length === 0 ? (
+          {/* Q6: 一番印象に残った1曲（全幅） */}
+          <StatCard title={`Q6　${stats.q6.label}`} style={{ gridColumn: '1 / -1' }}>
+            {stats.q6.list.length === 0 ? (
               <p style={{ color: '#999' }}>回答がありません</p>
             ) : (
               <ul style={{ ...styles.commentList, maxHeight: 360, overflowY: 'auto' }}>
-                {stats.q7.list.map((text, i) => (
+                {stats.q6.list.map((text, i) => (
+                  <li key={i} style={{ ...styles.commentItem, borderLeftColor: '#7c3aed' }}>
+                    <span style={{ ...styles.commentIndex, color: '#7c3aed' }}>{i + 1}</span>
+                    <span style={styles.commentText}>{String(text)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </StatCard>
+
+          {/* Q8: 自由記述（全幅） */}
+          <StatCard title={`Q8　${stats.q8.label}`} style={{ gridColumn: '1 / -1' }}>
+            {stats.q8.list.length === 0 ? (
+              <p style={{ color: '#999' }}>回答がありません</p>
+            ) : (
+              <ul style={{ ...styles.commentList, maxHeight: 360, overflowY: 'auto' }}>
+                {stats.q8.list.map((text, i) => (
                   <li key={i} style={styles.commentItem}>
                     <span style={styles.commentIndex}>{i + 1}</span>
                     <span style={styles.commentText}>{String(text)}</span>

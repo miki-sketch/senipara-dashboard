@@ -11,7 +11,7 @@ export const useSurvey = () => {
     fetchSurveyData()
       .then(({ cols, rows }) => {
         // Identify columns by position (Q1=col1, Q2=col2 ... depending on form structure)
-        // Columns: timestamp(0), Q1(1), Q2(2), Q3(3), Q4(4), Q5(5), Q6(6), Q7(7)
+        // Columns: timestamp(0), Q1(1), Q2(2), Q3(3), Q4(4), Q5(5), Q6(6), Q7(7), Q8(8)
         const q1Key = cols[1];
         const q2Key = cols[2];
         const q3Key = cols[3];
@@ -19,6 +19,7 @@ export const useSurvey = () => {
         const q5Key = cols[5];
         const q6Key = cols[6];
         const q7Key = cols[7];
+        const q8Key = cols[8];
 
         const total = rows.length;
 
@@ -56,13 +57,18 @@ export const useSurvey = () => {
         const q5Counts = countMultiSelect(rows.map((r) => r[q5Key]));
         const q5Data = toChartData(q5Counts).slice(0, 10);
 
-        // Q6: 定演来場意向
-        const q6Counts = countBy(rows.map((r) => r[q6Key]));
-        const q6Data = toChartData(q6Counts);
+        // Q6: 一番印象に残った1曲（自由記述形式）
+        const q6List = rows
+          .map((r) => r[q6Key])
+          .filter((v) => v != null && String(v).trim() !== '');
 
-        // Q7: 自由記述
-        const q7List = rows
-          .map((r) => r[q7Key])
+        // Q7: 定演来場意向
+        const q7Counts = countBy(rows.map((r) => r[q7Key]));
+        const q7Data = toChartData(q7Counts);
+
+        // Q8: 自由記述
+        const q8List = rows
+          .map((r) => r[q8Key])
           .filter((v) => v != null && String(v).trim() !== '');
 
         setStats({
@@ -73,8 +79,9 @@ export const useSurvey = () => {
           q3: { label: q3Key, data: q3Data },
           q4: { label: q4Key, avg: q4Avg, dist: q4DistData, nums: q4Nums },
           q5: { label: q5Key, data: q5Data },
-          q6: { label: q6Key, data: q6Data },
-          q7: { label: q7Key, list: q7List },
+          q6: { label: q6Key, list: q6List },
+          q7: { label: q7Key, data: q7Data },
+          q8: { label: q8Key, list: q8List },
         });
       })
       .catch((e) => setError(e.message))
