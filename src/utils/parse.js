@@ -8,15 +8,18 @@ export const countBy = (arr) => {
   return counts;
 };
 
-// Count multi-select answers (comma-separated or semicolon-separated)
+// Split a multi-select answer (comma-separated or semicolon-separated)
+export const splitMulti = (v) => {
+  if (v == null || v === '') return [];
+  return String(v).split(/[,、，；;]\s*/).map((p) => p.trim()).filter(Boolean);
+};
+
+// Count multi-select answers
 export const countMultiSelect = (arr) => {
   const counts = {};
   arr.forEach((v) => {
-    if (v == null || v === '') return;
-    const parts = String(v).split(/[,、，；;]\s*/);
-    parts.forEach((p) => {
-      const key = p.trim();
-      if (key) counts[key] = (counts[key] ?? 0) + 1;
+    splitMulti(v).forEach((key) => {
+      counts[key] = (counts[key] ?? 0) + 1;
     });
   });
   return counts;

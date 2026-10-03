@@ -62,31 +62,21 @@ const TIP = {
 const CHART_H = 240;
 const PIE_H = 280;
 
-const Q4_MINI_MAP = { '不満足': 1, '物足りない': 2, '普通': 3, 'よかった': 4, '大満足': 5 };
 const MINI_TH = { margin: '0 0 2px', fontSize: 11, fontWeight: 700, color: '#1a3a5c' };
 
-const SongProfile = ({ rows, q1Key, q2Key, q3Key, q4Key, songName }) => {
+const SongProfile = ({ rows, q1Key, q2Key, q3Key, songName }) => {
   const q1Data = toChartData(countBy(rows.map((r) => r[q1Key])));
   const q2Data = toChartData(countMultiSelect(rows.map((r) => r[q2Key])));
   const q3Data = toChartData(countBy(rows.map((r) => r[q3Key])));
-  const q4Dist = {};
-  rows.forEach((r) => {
-    const v = r[q4Key];
-    if (v == null) return;
-    const n = parseFloat(v);
-    const num = !isNaN(n) ? n : (Q4_MINI_MAP[String(v).trim()] ?? null);
-    if (num != null) q4Dist[num] = (q4Dist[num] ?? 0) + 1;
-  });
-  const q4Data = [1, 2, 3, 4, 5].map((i) => ({ name: `${i}点`, value: q4Dist[i] ?? 0 }));
 
   return (
     <div>
       <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: '#5b21b6' }}>
         「{songName}」を特に1番に選んだ方のプロフィール（{rows.length} 件）
       </p>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 20px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px 20px' }}>
         <div>
-          <p style={MINI_TH}>Q1 年代</p>
+          <p style={MINI_TH}>年代</p>
           <ResponsiveContainer width="100%" height={120}>
             <BarChart data={q1Data} margin={{ top: 10, right: 8, left: -24, bottom: 28 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#eef" />
@@ -99,7 +89,7 @@ const SongProfile = ({ rows, q1Key, q2Key, q3Key, q4Key, songName }) => {
           </ResponsiveContainer>
         </div>
         <div>
-          <p style={MINI_TH}>Q2 来場経路</p>
+          <p style={MINI_TH}>認知経路</p>
           <ResponsiveContainer width="100%" height={Math.max(100, q2Data.length * 20 + 16)}>
             <BarChart data={q2Data} layout="vertical" margin={{ top: 4, right: 28, left: 4, bottom: 4 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#eef" horizontal={false} />
@@ -112,7 +102,7 @@ const SongProfile = ({ rows, q1Key, q2Key, q3Key, q4Key, songName }) => {
           </ResponsiveContainer>
         </div>
         <div>
-          <p style={MINI_TH}>Q3 来場回数</p>
+          <p style={MINI_TH}>来場回数</p>
           <ResponsiveContainer width="100%" height={120}>
             <BarChart data={q3Data} margin={{ top: 10, right: 8, left: -24, bottom: 28 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#eef" />
@@ -124,28 +114,16 @@ const SongProfile = ({ rows, q1Key, q2Key, q3Key, q4Key, songName }) => {
             </BarChart>
           </ResponsiveContainer>
         </div>
-        <div>
-          <p style={MINI_TH}>Q4 満足度</p>
-          <ResponsiveContainer width="100%" height={120}>
-            <BarChart data={q4Data} margin={{ top: 10, right: 8, left: -24, bottom: 8 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#eef" />
-              <XAxis dataKey="name" tick={{ fontSize: 9 }} />
-              <YAxis tick={{ fontSize: 9 }} allowDecimals={false} />
-              <Tooltip content={<BarTip />} />
-              <Bar dataKey="value" fill="#d97706" radius={[2, 2, 0, 0]}
-                label={{ position: 'top', fontSize: 9, fill: '#1a3a5c' }} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
       </div>
     </div>
   );
 };
 
-const Dashboard = ({ onLogout }) => {
-  const { loading, error, stats } = useSurvey();
+const Dashboard = ({ pw, initialData, onUnauthorized, onLogout }) => {
+  const { loading, error, stats } = useSurvey(pw, initialData, onUnauthorized);
   const [otherOpen, setOtherOpen] = useState(false);
-  const [q6OpenSong, setQ6OpenSong] = useState(null);
+  const [q2OtherOpen, setQ2OtherOpen] = useState(false);
+  const [q5OpenSong, setQ5OpenSong] = useState(null);
 
   if (loading) {
     return (
@@ -171,7 +149,7 @@ const Dashboard = ({ onLogout }) => {
         <div style={styles.headerInner}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={styles.headerIcon}>🎵</span>
-            <span style={styles.headerTitle}>シニパラ サマコン2026 アンケート結果</span>
+            <span style={styles.headerTitle}>シニパラ 第14回定期演奏会 アンケート結果</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
             <div style={styles.totalBadge}>
@@ -186,10 +164,10 @@ const Dashboard = ({ onLogout }) => {
       <main style={styles.main}>
         <div style={styles.grid}>
 
-          {/* Q1: 年代 */}
-          <StatCard title={`Q1　${stats.q1.label}`}>
+          {/* 年代 */}
+          <StatCard title="年代">
             <ResponsiveContainer width="100%" height={CHART_H}>
-              <BarChart data={stats.q1.data} margin={{ top: 16, right: 12, left: -16, bottom: 48 }}>
+              <BarChart data={stats.q1} margin={{ top: 16, right: 12, left: -16, bottom: 48 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#eef" />
                 <XAxis dataKey="name" tick={{ fontSize: 12 }} angle={-30} textAnchor="end" interval={0} />
                 <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
@@ -200,8 +178,24 @@ const Dashboard = ({ onLogout }) => {
             </ResponsiveContainer>
           </StatCard>
 
-          {/* Q2: 来場経路 */}
-          <StatCard title={`Q2　${stats.q2.label}`}>
+          {/* 来場回数 */}
+          <StatCard title="来場回数">
+            <ResponsiveContainer width="100%" height={PIE_H}>
+              <PieChart>
+                <Pie data={stats.q3} cx="50%" cy="40%" outerRadius={80}
+                  dataKey="value" labelLine={false} label={renderCustomLabel}>
+                  {stats.q3.map((_, i) => (
+                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip content={<PieTip />} />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </StatCard>
+
+          {/* 認知経路 */}
+          <StatCard title="認知経路">
             <p style={styles.note}>※複数回答あり</p>
             <ResponsiveContainer width="100%" height={Math.max(CHART_H, stats.q2.data.length * 36 + 24)}>
               <BarChart data={stats.q2.data} layout="vertical" margin={{ top: 4, right: 48, left: 4, bottom: 4 }}>
@@ -213,46 +207,65 @@ const Dashboard = ({ onLogout }) => {
                   label={{ position: 'right', fontSize: 12, fill: '#1a3a5c', fontWeight: 700 }} />
               </BarChart>
             </ResponsiveContainer>
+            {stats.q2.otherCount > 0 && (
+              <div style={styles.q2Other}>
+                <button style={styles.otherToggle} onClick={() => setQ2OtherOpen((o) => !o)}>
+                  <span>その他（{stats.q2.otherCount} 件）</span>
+                  <span style={{ fontSize: 11 }}>{q2OtherOpen ? '▲ 閉じる' : '▼ 一覧を見る'}</span>
+                </button>
+                {q2OtherOpen && (
+                  stats.q2.otherList.length === 0 ? (
+                    <p style={{ margin: 0, padding: '4px 16px 12px', fontSize: 13, color: '#999' }}>記入がありません</p>
+                  ) : (
+                    <ul style={styles.otherList}>
+                      {stats.q2.otherList.map((text, i) => (
+                        <li key={i} style={styles.otherItem}>{text}</li>
+                      ))}
+                    </ul>
+                  )
+                )}
+              </div>
+            )}
           </StatCard>
 
-          {/* Q3: 来場回数 */}
-          <StatCard title={`Q3　${stats.q3.label}`}>
-            <ResponsiveContainer width="100%" height={PIE_H}>
-              <PieChart>
-                <Pie data={stats.q3.data} cx="50%" cy="40%" outerRadius={80}
-                  dataKey="value" labelLine={false} label={renderCustomLabel}>
-                  {stats.q3.data.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip content={<PieTip />} />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-              </PieChart>
-            </ResponsiveContainer>
+          {/* 紹介者一覧 */}
+          <StatCard title="紹介者一覧">
+            <p style={styles.note}>「団員から直接」を選んだ方の記入内容（{stats.referrers.length} 件）</p>
+            {stats.referrers.length === 0 ? (
+              <p style={{ color: '#999' }}>記入がありません</p>
+            ) : (
+              <ul style={{ ...styles.commentList, maxHeight: CHART_H + 40, overflowY: 'auto' }}>
+                {stats.referrers.map((text, i) => (
+                  <li key={i} style={{ ...styles.commentItem, borderLeftColor: '#16a34a' }}>
+                    <span style={{ ...styles.commentIndex, color: '#16a34a' }}>{i + 1}</span>
+                    <span style={styles.commentText}>{text}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </StatCard>
 
-          {/* Q4: 満足度 */}
-          <StatCard title={`Q4　${stats.q4.label}`}>
-            <div style={styles.avgRow}>
-              <span style={styles.avgNum}>{stats.q4.avg.toFixed(2)}</span>
-              <span style={styles.avgDenom}>/ 5 点</span>
-              <span style={styles.avgSub}>平均（{stats.q4.nums.length} 件）</span>
-            </div>
-            <ResponsiveContainer width="100%" height={130}>
-              <BarChart data={stats.q4.dist} margin={{ top: 12, right: 12, left: -16, bottom: 4 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#eef" />
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
-                <Tooltip content={<BarTip />} />
-                <Bar dataKey="value" fill="#d97706" radius={[4, 4, 0, 0]}
-                  label={{ position: 'top', fontSize: 12, fill: '#1a3a5c', fontWeight: 700 }} />
-              </BarChart>
-            </ResponsiveContainer>
+          {/* 地域分布（全幅） */}
+          <StatCard title="地域分布" style={{ gridColumn: '1 / -1' }}>
+            {stats.region.length === 0 ? (
+              <p style={{ color: '#999' }}>回答がありません</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={Math.max(CHART_H, stats.region.length * 30 + 24)}>
+                <BarChart data={stats.region} layout="vertical" margin={{ top: 4, right: 48, left: 4, bottom: 4 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#eef" horizontal={false} />
+                  <XAxis type="number" tick={{ fontSize: 12 }} allowDecimals={false} />
+                  <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} width={180} />
+                  <Tooltip content={<BarTip />} />
+                  <Bar dataKey="value" fill="#0891b2" radius={[0, 4, 4, 0]}
+                    label={{ position: 'right', fontSize: 12, fill: '#1a3a5c', fontWeight: 700 }} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </StatCard>
 
-          {/* 曲の人気ランキング（Q5+Q6統合・全幅） */}
+          {/* 曲の人気ランキング（全幅） */}
           <StatCard title="曲の人気ランキング" style={{ gridColumn: '1 / -1' }}>
-            <p style={styles.note}>Q5: 印象に残った曲（複数回答） ／ Q6: 一番印象に残った1曲（自由記述）</p>
+            <p style={styles.note}>印象に残った曲（複数回答） ／ 一番印象に残った1曲（自由記述）</p>
             <table style={styles.rankTable}>
               <thead>
                 <tr>
@@ -260,11 +273,11 @@ const Dashboard = ({ onLogout }) => {
                   <th style={{ ...styles.rankTh, textAlign: 'left', paddingLeft: 16 }}>曲名</th>
                   <th style={styles.rankTh}>
                     印象に残った<br />
-                    <span style={styles.rankThSub}>Q5・複数回答</span>
+                    <span style={styles.rankThSub}>複数回答</span>
                   </th>
                   <th style={styles.rankTh}>
                     特に1番<br />
-                    <span style={styles.rankThSub}>Q6・1択</span>
+                    <span style={styles.rankThSub}>1択</span>
                   </th>
                 </tr>
               </thead>
@@ -285,29 +298,28 @@ const Dashboard = ({ onLogout }) => {
                         {row.name}
                       </td>
                       <td style={{ ...styles.rankTd, color: '#2563eb', fontWeight: 700 }}>
-                        {row.q5Count > 0 ? `${row.q5Count} 票` : '—'}
+                        {row.q4Count > 0 ? `${row.q4Count} 票` : '—'}
                       </td>
                       <td style={{ ...styles.rankTd, color: '#7c3aed', fontWeight: 700 }}>
-                        {row.q6Count > 0 ? (
+                        {row.q5Count > 0 ? (
                           <button
-                            style={styles.q6CountBtn}
-                            onClick={() => setQ6OpenSong(q6OpenSong === row.name ? null : row.name)}
+                            style={styles.q5CountBtn}
+                            onClick={() => setQ5OpenSong(q5OpenSong === row.name ? null : row.name)}
                           >
-                            {row.q6Count} 件
-                            <span style={{ fontSize: 10 }}>{q6OpenSong === row.name ? '▲' : '▼'}</span>
+                            {row.q5Count} 件
+                            <span style={{ fontSize: 10 }}>{q5OpenSong === row.name ? '▲' : '▼'}</span>
                           </button>
                         ) : '—'}
                       </td>
                     </tr>
-                    {q6OpenSong === row.name && (
+                    {q5OpenSong === row.name && (
                       <tr style={styles.rankRowOther}>
                         <td colSpan={4} style={{ padding: '8px 20px 16px' }}>
                           <SongProfile
-                            rows={row.q6Rows}
-                            q1Key={stats.q1.label}
-                            q2Key={stats.q2.label}
-                            q3Key={stats.q3.label}
-                            q4Key={stats.q4.label}
+                            rows={row.q5Rows}
+                            q1Key={stats.keys.q1}
+                            q2Key={stats.keys.q2}
+                            q3Key={stats.keys.q3}
                             songName={row.name}
                           />
                         </td>
@@ -339,32 +351,19 @@ const Dashboard = ({ onLogout }) => {
             </table>
           </StatCard>
 
-          {/* Q7: 定演来場意向 */}
-          <StatCard title={`Q7　${stats.q7.label}`}>
-            <ResponsiveContainer width="100%" height={PIE_H}>
-              <PieChart>
-                <Pie data={stats.q7.data} cx="50%" cy="40%" outerRadius={80}
-                  dataKey="value" labelLine={false} label={renderCustomLabel}>
-                  {stats.q7.data.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip content={<PieTip />} />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-              </PieChart>
-            </ResponsiveContainer>
-          </StatCard>
-
-          {/* Q8: 自由記述（全幅） */}
-          <StatCard title={`Q8　${stats.q8.label}`}>
-            {stats.q8.list.length === 0 ? (
+          {/* ご感想・ご要望（全幅） */}
+          <StatCard title="ご感想・ご要望" style={{ gridColumn: '1 / -1' }}>
+            {stats.comments.length === 0 ? (
               <p style={{ color: '#999' }}>回答がありません</p>
             ) : (
               <ul style={{ ...styles.commentList, maxHeight: 360, overflowY: 'auto' }}>
-                {stats.q8.list.map((text, i) => (
+                {stats.comments.map((c, i) => (
                   <li key={i} style={styles.commentItem}>
                     <span style={styles.commentIndex}>{i + 1}</span>
-                    <span style={styles.commentText}>{String(text)}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <span style={styles.commentText}>{c.text}</span>
+                      <p style={styles.commentName}>— {c.name}</p>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -446,15 +445,6 @@ const styles = {
     gap: '16px',
   },
   note: { margin: '0 0 6px', fontSize: 12, color: '#7a9ab8' },
-  avgRow: {
-    display: 'flex',
-    alignItems: 'baseline',
-    gap: 8,
-    marginBottom: 4,
-  },
-  avgNum: { fontSize: 36, fontWeight: 800, color: '#2563eb', lineHeight: 1 },
-  avgDenom: { fontSize: 16, color: '#5a7a9a' },
-  avgSub: { fontSize: 13, color: '#7a9ab8' },
   rankBadge: {
     minWidth: 26, height: 26, borderRadius: '50%',
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -474,13 +464,14 @@ const styles = {
   rankRowEven: { background: '#fff' },
   rankRowOdd: { background: '#f8fafd' },
   rankRowOther: { background: '#faf5ff' },
-  q6CountBtn: {
+  q5CountBtn: {
     background: 'none', border: 'none', cursor: 'pointer',
     color: '#7c3aed', fontWeight: 700, fontSize: 14,
     display: 'inline-flex', alignItems: 'center', gap: 4,
     padding: '2px 6px', borderRadius: 4, textDecoration: 'underline',
     textDecorationStyle: 'dotted', textUnderlineOffset: 3,
   },
+  q2Other: { marginTop: 8, background: '#faf5ff', borderRadius: 8 },
   otherToggle: {
     width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
     padding: '10px 16px', border: 'none', background: 'transparent',
@@ -504,6 +495,7 @@ const styles = {
     borderRadius: 8, borderLeft: '3px solid #2563eb',
   },
   commentIndex: { minWidth: 24, fontSize: 12, fontWeight: 700, color: '#2563eb', paddingTop: 2 },
+  commentName: { margin: '4px 0 0', fontSize: 12, color: '#5a7a9a', textAlign: 'right' },
   commentText: { fontSize: 14, color: '#2c3e50', lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' },
 };
 

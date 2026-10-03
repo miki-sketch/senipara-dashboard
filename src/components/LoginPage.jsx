@@ -1,10 +1,9 @@
 import { useState } from 'react';
-import { fetchCredentials } from '../utils/sheets';
+import { fetchSurveyData, UnauthorizedError } from '../utils/sheets';
 
-const LoginPage = ({ onLogin }) => {
-  const [user, setUser] = useState('');
+const LoginPage = ({ onLogin, initialError = '' }) => {
   const [pass, setPass] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState(initialError);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -12,16 +11,12 @@ const LoginPage = ({ onLogin }) => {
     setError('');
     setLoading(true);
     try {
-      const creds = await fetchCredentials();
-
-if (user.trim() === creds.user && pass.trim() === creds.pass) {
-        onLogin();
-      } else {
-        setError('ユーザー名またはパスワードが正しくありません');
-      }
-    } catch {
-      setError('認証情報の取得に失敗しました。しばらくしてから再試行してください。');
-    } finally {
+      const data = await fetchSurveyData(pass);
+      onLogin(pass, data);
+    } catch (err) {
+      setError(err instanceof UnauthorizedError
+        ? 'パスワードが正しくありません'
+        : 'データの取得に失敗しました。しばらくしてから再試行してください。');
       setLoading(false);
     }
   };
@@ -30,18 +25,9 @@ if (user.trim() === creds.user && pass.trim() === creds.pass) {
     <div style={styles.bg}>
       <div style={styles.card}>
         <div style={styles.logo}>🎵</div>
-        <h1 style={styles.title}>シニパラ サマコン2026</h1>
+        <h1 style={styles.title}>シニパラ 第14回定期演奏会</h1>
         <p style={styles.subtitle}>アンケート結果ダッシュボード</p>
         <form onSubmit={handleSubmit} style={styles.form}>
-          <label style={styles.label}>ユーザー名</label>
-          <input
-            type="text"
-            value={user}
-            onChange={(e) => setUser(e.target.value)}
-            style={styles.input}
-            autoComplete="username"
-            required
-          />
           <label style={styles.label}>パスワード</label>
           <input
             type="password"
@@ -49,11 +35,12 @@ if (user.trim() === creds.user && pass.trim() === creds.pass) {
             onChange={(e) => setPass(e.target.value)}
             style={styles.input}
             autoComplete="current-password"
+            autoFocus
             required
           />
           {error && <p style={styles.error}>{error}</p>}
           <button type="submit" style={styles.btn} disabled={loading}>
-            {loading ? '確認中...' : 'ログイン'}
+            {loading ? '確認中...' : '表示する'}
           </button>
         </form>
       </div>
