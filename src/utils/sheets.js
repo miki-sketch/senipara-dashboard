@@ -1,4 +1,4 @@
-const API_URL =
+export const API_URL =
   'https://script.google.com/macros/s/AKfycby7X1DqekKOu09LCRQ4svP2iqAdGy4o0ghXVWk4hLcaoyMoVafzMpGZ2I5JLXTytg1O/exec';
 
 export class UnauthorizedError extends Error {

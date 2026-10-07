@@ -15,6 +15,7 @@ import {
 import { useSurvey } from '../hooks/useSurvey';
 import StatCard from './StatCard';
 import HBarChart from './HBarChart';
+import DetailTable from './DetailTable';
 import { countBy, countMultiSelect, toChartData } from '../utils/parse';
 
 const COLORS = [
@@ -117,6 +118,12 @@ const Dashboard = ({ pw, initialData, onUnauthorized, onLogout }) => {
   const [otherOpen, setOtherOpen] = useState(false);
   const [q2OtherOpen, setQ2OtherOpen] = useState(false);
   const [q5OpenSong, setQ5OpenSong] = useState(null);
+  const [view, setView] = useState('dashboard'); // 'dashboard' | 'detail'
+
+  const toggleView = () => {
+    setView((v) => (v === 'dashboard' ? 'detail' : 'dashboard'));
+    window.scrollTo(0, 0);
+  };
 
   if (loading) {
     return (
@@ -136,7 +143,7 @@ const Dashboard = ({ pw, initialData, onUnauthorized, onLogout }) => {
   }
 
   return (
-    <div style={styles.bg}>
+    <div style={view === 'detail' ? styles.bgDetail : styles.bg}>
       {/* ── Header ── */}
       <header style={styles.header}>
         <div style={styles.headerInner}>
@@ -145,6 +152,9 @@ const Dashboard = ({ pw, initialData, onUnauthorized, onLogout }) => {
             <span style={styles.headerTitle}>シニパラ 第14回定期演奏会 アンケート結果</span>
           </div>
           <div style={styles.headerRight}>
+            <button onClick={toggleView} style={styles.viewBtn}>
+              {view === 'dashboard' ? '明細表示はこちら' : '← ダッシュボードに戻る'}
+            </button>
             <div style={styles.totalBadge}>
               回答総数　<strong style={{ fontSize: 22 }}>{stats.total}</strong>　件
               <span style={styles.methodBreakdown}>
@@ -156,7 +166,11 @@ const Dashboard = ({ pw, initialData, onUnauthorized, onLogout }) => {
         </div>
       </header>
 
-      {/* ── Grid ── */}
+      {view === 'detail' ? (
+        <main style={{ ...styles.main, ...styles.mainDetail }}>
+          <DetailTable rows={stats.details} pw={pw} />
+        </main>
+      ) : (
       <main style={styles.main}>
         <div style={styles.grid}>
 
@@ -358,6 +372,7 @@ const Dashboard = ({ pw, initialData, onUnauthorized, onLogout }) => {
 
         </div>
       </main>
+      )}
     </div>
   );
 };
@@ -369,6 +384,14 @@ const styles = {
     flexDirection: 'column',
     background: '#f0f4fa',
   },
+  // 明細ビューは画面の高さに固定し、表の枠の中だけをスクロールさせる（列名の sticky のため）
+  bgDetail: {
+    height: '100dvh',
+    display: 'flex',
+    flexDirection: 'column',
+    background: '#f0f4fa',
+  },
+  mainDetail: { maxWidth: 'none', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' },
   center: {
     height: '100vh',
     display: 'flex',
@@ -412,6 +435,17 @@ const styles = {
     padding: '6px 16px',
     fontSize: 15,
     color: '#fff',
+    whiteSpace: 'nowrap',
+  },
+  viewBtn: {
+    background: '#2563eb',
+    color: '#fff',
+    border: '1px solid rgba(255,255,255,0.35)',
+    borderRadius: 6,
+    padding: '7px 16px',
+    fontSize: 14,
+    fontWeight: 700,
+    cursor: 'pointer',
     whiteSpace: 'nowrap',
   },
   logoutBtn: {

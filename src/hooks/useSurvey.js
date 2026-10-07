@@ -36,6 +36,7 @@ const normalizeSong = (text) => {
 // APIが返す列の位置
 const COL = {
   method: 0,    // 回答方法（"電子" / "紙"）
+  timestamp: 1, // タイムスタンプ
   q1: 2,        // 年代
   q2: 3,        // 認知経路（複数選択）
   referrer: 4,  // 紹介者
@@ -48,6 +49,7 @@ const COL = {
   file: 11,     // 元ファイル名（紙のみ）
   page: 12,     // ページ番号（紙のみ）
   note: 13,     // 備考（紙のみ。読み取り時の要確認）
+  image: 14,    // 原本画像のファイル名（紙で画像登録済みの行のみ）
 };
 
 const isBlank = (v) => v == null || String(v).trim() === '';
@@ -56,12 +58,26 @@ const METHOD_PAPER = '紙';
 const METHOD_DIGITAL = '電子';
 const isPaper = (r) => String(r[COL.method] ?? '').trim() === METHOD_PAPER;
 
+const text = (v) => (isBlank(v) ? '' : String(v).trim());
+
+// 元ファイル名とページ番号（例: "SKM_001.pdf p.7"）。どちらも空なら ''
+const fileWithPage = (r) => {
+  const page = text(r[COL.page]);
+  return `${text(r[COL.file])}${page ? ` p.${page}` : ''}`.trim();
+};
+
 // 紙回答の出所表示（例: "紙：SKM_001.pdf p.7"）。電子は null
-const paperSource = (r) => {
-  if (!isPaper(r)) return null;
-  const file = isBlank(r[COL.file]) ? '' : String(r[COL.file]).trim();
-  const page = isBlank(r[COL.page]) ? '' : ` p.${String(r[COL.page]).trim()}`;
-  return `紙：${file}${page}`.trim();
+const paperSource = (r) => (isPaper(r) ? `紙：${fileWithPage(r)}` : null);
+
+// GASが日時をISO形式（UTC）で返した場合は日本時間の「YYYY/MM/DD HH:mm」にする。それ以外はそのまま
+const formatTimestamp = (v) => {
+  const t = text(v);
+  if (!/^\d{4}-\d{2}-\d{2}T/.test(t)) return t;
+  const d = new Date(t);
+  if (Number.isNaN(d.getTime())) return t;
+  return d.toLocaleString('ja-JP', {
+    timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+  });
 };
 
 const Q2_MEMBER = '団員から直接';
@@ -129,8 +145,27 @@ export const computeStats = (rows) => {
       note: isBlank(r[COL.note]) ? null : String(r[COL.note]).trim(),
     }));
 
+  // 明細（APIの順序のまま）
+  const details = rows.map((r) => ({
+    method: text(r[COL.method]),
+    timestamp: formatTimestamp(r[COL.timestamp]),
+    q1: text(r[COL.q1]),
+    q2: text(r[COL.q2]),
+    referrer: text(r[COL.referrer]),
+    q3: text(r[COL.q3]),
+    q4: text(r[COL.q4]),
+    q5: text(r[COL.q5]),
+    name: text(r[COL.name]),
+    region: text(r[COL.region]),
+    q8: isBlank(r[COL.q8]) ? '' : String(r[COL.q8]),
+    source: fileWithPage(r),
+    note: text(r[COL.note]),
+    image: text(r[COL.image]),
+  }));
+
   return {
     total,
+    details,
     byMethod: { digital: digitalCount, paper: paperCount },
     keys: { q1: COL.q1, q2: COL.q2, q3: COL.q3 },
     q1: q1Data,
