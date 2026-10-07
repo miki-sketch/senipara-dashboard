@@ -13,6 +13,7 @@ const styles = {
     padding: '16px 18px',
     display: 'flex',
     flexDirection: 'column',
+    minWidth: 0,
   },
   title: {
     fontSize: '15px',

@@ -14,6 +14,7 @@ import {
 } from 'recharts';
 import { useSurvey } from '../hooks/useSurvey';
 import StatCard from './StatCard';
+import HBarChart from './HBarChart';
 import { countBy, countMultiSelect, toChartData } from '../utils/parse';
 
 const COLORS = [
@@ -74,7 +75,7 @@ const SongProfile = ({ rows, q1Key, q2Key, q3Key, songName }) => {
       <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: '#5b21b6' }}>
         「{songName}」を特に1番に選んだ方のプロフィール（{rows.length} 件）
       </p>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px 20px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: '8px 20px' }}>
         <div>
           <p style={MINI_TH}>年代</p>
           <ResponsiveContainer width="100%" height={120}>
@@ -83,23 +84,15 @@ const SongProfile = ({ rows, q1Key, q2Key, q3Key, songName }) => {
               <XAxis dataKey="name" tick={{ fontSize: 9 }} angle={-25} textAnchor="end" interval={0} />
               <YAxis tick={{ fontSize: 9 }} allowDecimals={false} />
               <Tooltip content={<BarTip />} />
-              <Bar dataKey="value" fill="#2563eb" radius={[2, 2, 0, 0]}
+              <Bar isAnimationActive={false} dataKey="value" fill="#2563eb" radius={[2, 2, 0, 0]}
                 label={{ position: 'top', fontSize: 9, fill: '#1a3a5c' }} />
             </BarChart>
           </ResponsiveContainer>
         </div>
         <div>
           <p style={MINI_TH}>認知経路</p>
-          <ResponsiveContainer width="100%" height={Math.max(100, q2Data.length * 20 + 16)}>
-            <BarChart data={q2Data} layout="vertical" margin={{ top: 4, right: 28, left: 4, bottom: 4 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#eef" horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 9 }} allowDecimals={false} />
-              <YAxis type="category" dataKey="name" tick={{ fontSize: 9 }} width={110} />
-              <Tooltip content={<BarTip />} />
-              <Bar dataKey="value" fill="#16a34a" radius={[0, 2, 2, 0]}
-                label={{ position: 'right', fontSize: 9, fill: '#1a3a5c' }} />
-            </BarChart>
-          </ResponsiveContainer>
+          <HBarChart data={q2Data} height={Math.max(100, q2Data.length * 20 + 16)}
+            fill="#16a34a" fontSize={9} radius={2} tooltip={<BarTip />} />
         </div>
         <div>
           <p style={MINI_TH}>来場回数</p>
@@ -109,7 +102,7 @@ const SongProfile = ({ rows, q1Key, q2Key, q3Key, songName }) => {
               <XAxis dataKey="name" tick={{ fontSize: 9 }} angle={-25} textAnchor="end" interval={0} />
               <YAxis tick={{ fontSize: 9 }} allowDecimals={false} />
               <Tooltip content={<BarTip />} />
-              <Bar dataKey="value" fill="#0891b2" radius={[2, 2, 0, 0]}
+              <Bar isAnimationActive={false} dataKey="value" fill="#0891b2" radius={[2, 2, 0, 0]}
                 label={{ position: 'top', fontSize: 9, fill: '#1a3a5c' }} />
             </BarChart>
           </ResponsiveContainer>
@@ -147,13 +140,16 @@ const Dashboard = ({ pw, initialData, onUnauthorized, onLogout }) => {
       {/* ── Header ── */}
       <header style={styles.header}>
         <div style={styles.headerInner}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={styles.headerLeft}>
             <span style={styles.headerIcon}>🎵</span>
             <span style={styles.headerTitle}>シニパラ 第14回定期演奏会 アンケート結果</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+          <div style={styles.headerRight}>
             <div style={styles.totalBadge}>
               回答総数　<strong style={{ fontSize: 22 }}>{stats.total}</strong>　件
+              <span style={styles.methodBreakdown}>
+                （電子 {stats.byMethod.digital}件／紙 {stats.byMethod.paper}件）
+              </span>
             </div>
             <button onClick={onLogout} style={styles.logoutBtn}>ログアウト</button>
           </div>
@@ -172,7 +168,7 @@ const Dashboard = ({ pw, initialData, onUnauthorized, onLogout }) => {
                 <XAxis dataKey="name" tick={{ fontSize: 12 }} angle={-30} textAnchor="end" interval={0} />
                 <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
                 <Tooltip content={<BarTip />} />
-                <Bar dataKey="value" fill="#2563eb" radius={[4, 4, 0, 0]}
+                <Bar isAnimationActive={false} dataKey="value" fill="#2563eb" radius={[4, 4, 0, 0]}
                   label={{ position: 'top', fontSize: 12, fill: '#1a3a5c', fontWeight: 700 }} />
               </BarChart>
             </ResponsiveContainer>
@@ -182,7 +178,7 @@ const Dashboard = ({ pw, initialData, onUnauthorized, onLogout }) => {
           <StatCard title="来場回数">
             <ResponsiveContainer width="100%" height={PIE_H}>
               <PieChart>
-                <Pie data={stats.q3} cx="50%" cy="40%" outerRadius={80}
+                <Pie isAnimationActive={false} data={stats.q3} cx="50%" cy="40%" outerRadius={80}
                   dataKey="value" labelLine={false} label={renderCustomLabel}>
                   {stats.q3.map((_, i) => (
                     <Cell key={i} fill={COLORS[i % COLORS.length]} />
@@ -197,16 +193,8 @@ const Dashboard = ({ pw, initialData, onUnauthorized, onLogout }) => {
           {/* 認知経路 */}
           <StatCard title="認知経路">
             <p style={styles.note}>※複数回答あり</p>
-            <ResponsiveContainer width="100%" height={Math.max(CHART_H, stats.q2.data.length * 36 + 24)}>
-              <BarChart data={stats.q2.data} layout="vertical" margin={{ top: 4, right: 48, left: 4, bottom: 4 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#eef" horizontal={false} />
-                <XAxis type="number" tick={{ fontSize: 12 }} allowDecimals={false} />
-                <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={140} />
-                <Tooltip content={<BarTip />} />
-                <Bar dataKey="value" fill="#16a34a" radius={[0, 4, 4, 0]}
-                  label={{ position: 'right', fontSize: 12, fill: '#1a3a5c', fontWeight: 700 }} />
-              </BarChart>
-            </ResponsiveContainer>
+            <HBarChart data={stats.q2.data} height={Math.max(CHART_H, stats.q2.data.length * 36 + 24)}
+              fill="#16a34a" fontSize={11} labelFontSize={12} tooltip={<BarTip />} />
             {stats.q2.otherCount > 0 && (
               <div style={styles.q2Other}>
                 <button style={styles.otherToggle} onClick={() => setQ2OtherOpen((o) => !o)}>
@@ -250,16 +238,8 @@ const Dashboard = ({ pw, initialData, onUnauthorized, onLogout }) => {
             {stats.region.length === 0 ? (
               <p style={{ color: '#999' }}>回答がありません</p>
             ) : (
-              <ResponsiveContainer width="100%" height={Math.max(CHART_H, stats.region.length * 30 + 24)}>
-                <BarChart data={stats.region} layout="vertical" margin={{ top: 4, right: 48, left: 4, bottom: 4 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#eef" horizontal={false} />
-                  <XAxis type="number" tick={{ fontSize: 12 }} allowDecimals={false} />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} width={180} />
-                  <Tooltip content={<BarTip />} />
-                  <Bar dataKey="value" fill="#0891b2" radius={[0, 4, 4, 0]}
-                    label={{ position: 'right', fontSize: 12, fill: '#1a3a5c', fontWeight: 700 }} />
-                </BarChart>
-              </ResponsiveContainer>
+              <HBarChart data={stats.region} height={Math.max(CHART_H, stats.region.length * 30 + 24)}
+                fill="#0891b2" tooltip={<BarTip />} />
             )}
           </StatCard>
 
@@ -362,7 +342,13 @@ const Dashboard = ({ pw, initialData, onUnauthorized, onLogout }) => {
                     <span style={styles.commentIndex}>{i + 1}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <span style={styles.commentText}>{c.text}</span>
-                      <p style={styles.commentName}>— {c.name}</p>
+                      <p style={styles.commentName}>
+                        {c.note && (
+                          <span title={`要確認: ${c.note}`} style={styles.commentNote}>⚠</span>
+                        )}
+                        — {c.name}
+                        {c.source && <span style={styles.commentSource}>{'\u3000'}（{c.source}）</span>}
+                      </p>
                     </div>
                   </li>
                 ))}
@@ -411,7 +397,12 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: '8px 20px',
   },
+  // 幅が足りないときは右側（件数・ログアウト）を次の行に送り、タイトルを潰さない
+  headerLeft: { display: 'flex', alignItems: 'center', gap: 10, flex: '1 1 auto', minWidth: 0 },
+  headerRight: { display: 'flex', alignItems: 'center', gap: '8px 20px', flexShrink: 0, flexWrap: 'wrap', maxWidth: '100%' },
   headerIcon: { fontSize: 22 },
   headerTitle: { fontSize: '17px', fontWeight: '700' },
   totalBadge: {
@@ -441,7 +432,8 @@ const styles = {
   },
   grid: {
     display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
+    // 2列。カードが狭くなりすぎる幅では1列にする
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 440px), 1fr))',
     gap: '16px',
   },
   note: { margin: '0 0 6px', fontSize: 12, color: '#7a9ab8' },
@@ -496,6 +488,9 @@ const styles = {
   },
   commentIndex: { minWidth: 24, fontSize: 12, fontWeight: 700, color: '#2563eb', paddingTop: 2 },
   commentName: { margin: '4px 0 0', fontSize: 12, color: '#5a7a9a', textAlign: 'right' },
+  commentSource: { fontSize: 11, color: '#8aa0b5' },
+  commentNote: { marginRight: 6, color: '#d97706', cursor: 'help' },
+  methodBreakdown: { fontSize: 13, marginLeft: 4 },
   commentText: { fontSize: 14, color: '#2c3e50', lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' },
 };
 

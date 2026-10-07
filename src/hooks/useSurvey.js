@@ -35,24 +35,42 @@ const normalizeSong = (text) => {
 
 // APIが返す列の位置
 const COL = {
-  q1: 1,        // 年代
-  q2: 2,        // 認知経路（複数選択）
-  referrer: 3,  // 紹介者
-  q3: 4,        // 来場回数
-  q4: 5,        // 印象に残った曲（複数選択）
-  q5: 6,        // 一番印象に残った1曲（自由記述）
-  name: 7,      // お名前
-  region: 8,    // 地域
-  q8: 9,        // ご感想・ご要望
+  method: 0,    // 回答方法（"電子" / "紙"）
+  q1: 2,        // 年代
+  q2: 3,        // 認知経路（複数選択）
+  referrer: 4,  // 紹介者
+  q3: 5,        // 来場回数
+  q4: 6,        // 印象に残った曲（複数選択）
+  q5: 7,        // 一番印象に残った1曲（自由記述）
+  name: 8,      // お名前
+  region: 9,    // 地域
+  q8: 10,       // ご感想・ご要望
+  file: 11,     // 元ファイル名（紙のみ）
+  page: 12,     // ページ番号（紙のみ）
+  note: 13,     // 備考（紙のみ。読み取り時の要確認）
 };
 
 const isBlank = (v) => v == null || String(v).trim() === '';
+
+const METHOD_PAPER = '紙';
+const METHOD_DIGITAL = '電子';
+const isPaper = (r) => String(r[COL.method] ?? '').trim() === METHOD_PAPER;
+
+// 紙回答の出所表示（例: "紙：SKM_001.pdf p.7"）。電子は null
+const paperSource = (r) => {
+  if (!isPaper(r)) return null;
+  const file = isBlank(r[COL.file]) ? '' : String(r[COL.file]).trim();
+  const page = isBlank(r[COL.page]) ? '' : ` p.${String(r[COL.page]).trim()}`;
+  return `紙：${file}${page}`.trim();
+};
 
 const Q2_MEMBER = '団員から直接';
 const Q2_OTHER = 'その他';
 
 export const computeStats = (rows) => {
   const total = rows.length;
+  const paperCount = rows.filter(isPaper).length;
+  const digitalCount = rows.filter((r) => String(r[COL.method] ?? '').trim() === METHOD_DIGITAL).length;
 
   const q1Data = toChartData(countBy(rows.map((r) => r[COL.q1])));
   // 認知経路: グラフは「その他」以外。「その他」は記入内容を別に一覧表示
@@ -107,10 +125,13 @@ export const computeStats = (rows) => {
     .map((r) => ({
       text: String(r[COL.q8]),
       name: isBlank(r[COL.name]) ? '未記載' : String(r[COL.name]).trim(),
+      source: paperSource(r),
+      note: isBlank(r[COL.note]) ? null : String(r[COL.note]).trim(),
     }));
 
   return {
     total,
+    byMethod: { digital: digitalCount, paper: paperCount },
     keys: { q1: COL.q1, q2: COL.q2, q3: COL.q3 },
     q1: q1Data,
     q2: { data: q2Data, otherCount: q2OtherCount, otherList: q2OtherList },
