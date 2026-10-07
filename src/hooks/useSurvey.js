@@ -159,6 +159,8 @@ export const computeStats = (rows) => {
     region: text(r[COL.region]),
     q8: isBlank(r[COL.q8]) ? '' : String(r[COL.q8]),
     source: fileWithPage(r),
+    file: text(r[COL.file]),
+    page: text(r[COL.page]),
     note: text(r[COL.note]),
     image: text(r[COL.image]),
   }));

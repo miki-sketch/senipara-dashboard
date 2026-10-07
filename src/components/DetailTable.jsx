@@ -1,31 +1,30 @@
 import { useState } from 'react';
 import { API_URL } from '../utils/sheets';
 
+// sortable: 表では列ヘッダーのクリックで並び替えできる列
 const COLUMNS = [
   { key: 'method', label: '方法', nowrap: true },
-  { key: 'timestamp', label: '日時', nowrap: true },
+  { key: 'timestamp', label: '日時', nowrap: true, sortable: true },
   { key: 'q1', label: '年代', nowrap: true },
-  { key: 'q2', label: '知ったきっかけ', minWidth: 140 },
-  { key: 'referrer', label: '紹介者', minWidth: 100 },
+  { key: 'q2', label: '知ったきっかけ', minWidth: 140, sortable: true },
+  { key: 'referrer', label: '紹介者', minWidth: 100, sortable: true },
   { key: 'q3', label: '来場回数', nowrap: true },
   { key: 'q4', label: '印象に残った曲', minWidth: 220 },
-  { key: 'q5', label: '一番の1曲', minWidth: 160 },
-  { key: 'name', label: 'お名前', minWidth: 100 },
-  { key: 'region', label: '地域', minWidth: 110 },
+  { key: 'q5', label: '一番の1曲', minWidth: 160, sortable: true },
+  { key: 'name', label: 'お名前', minWidth: 100, sortable: true },
+  { key: 'region', label: '地域', minWidth: 110, sortable: true },
   { key: 'q8', label: '感想', minWidth: 320 },
-  { key: 'source', label: '出所', nowrap: true },
+  { key: 'source', label: '出所', nowrap: true, sortable: true },
   { key: 'note', label: '備考', minWidth: 140 },
 ];
 
 // カードでは方法・日時を上端に出し、残りを「項目名：値」で並べる
 const CARD_FIELDS = COLUMNS.filter((c) => c.key !== 'method' && c.key !== 'timestamp');
 
+// カード形式の並び替えボタン（表は列ヘッダーで並び替える）
 const SORT_KEYS = [
   { key: null, label: '標準' },
-  { key: 'timestamp', label: '日時' },
-  { key: 'q2', label: '知ったきっかけ' },
-  { key: 'referrer', label: '紹介者' },
-  { key: 'q5', label: '一番の1曲' },
+  ...COLUMNS.filter((c) => c.sortable).map(({ key, label }) => ({ key, label })),
 ];
 
 const METHOD_LABEL = {
@@ -36,6 +35,18 @@ const METHOD_LABEL = {
 // 原本画像はGAS経由で配信する（GASがオーナー権限で読み出すため、Googleアカウント不要）
 const imageUrl = (pw, image) => `${API_URL}?pw=${encodeURIComponent(pw)}&img=${encodeURIComponent(image)}`;
 
+const comparePage = (a, b) => {
+  const na = parseInt(a, 10), nb = parseInt(b, 10);
+  if (Number.isNaN(na) || Number.isNaN(nb)) return Number.isNaN(na) - Number.isNaN(nb);
+  return na - nb;
+};
+
+// 出所は元ファイル名 → ページ番号（数値）の順で比較する。それ以外は文字列比較
+const compareValues = (key, a, b) =>
+  key === 'source'
+    ? a.file.localeCompare(b.file, 'ja') || comparePage(a.page, b.page)
+    : a[key].localeCompare(b[key], 'ja');
+
 // 空の値は昇順・降順にかかわらず末尾。同値はAPIの順序を保つ
 const sortRows = (rows, { key, dir }) => {
   if (!key) return rows;
@@ -43,9 +54,9 @@ const sortRows = (rows, { key, dir }) => {
   return rows
     .map((row, i) => ({ row, i }))
     .sort((a, b) => {
-      const va = a.row[key], vb = b.row[key];
-      if (!va || !vb) return (!va - !vb) || a.i - b.i;
-      return sign * va.localeCompare(vb, 'ja') || a.i - b.i;
+      const ea = !a.row[key], eb = !b.row[key];
+      if (ea || eb) return (ea - eb) || a.i - b.i;
+      return sign * compareValues(key, a.row, b.row) || a.i - b.i;
     })
     .map(({ row }) => row);
 };
@@ -68,7 +79,9 @@ const MethodCell = ({ row, pw }) => {
 };
 
 const DetailTable = ({ rows, pw }) => {
+  // 表とカードで共有する
   const [sort, setSort] = useState({ key: null, dir: 'asc' });
+  const [hoveredCol, setHoveredCol] = useState(null);
 
   const handleSort = (key) => {
     if (!key) setSort({ key: null, dir: 'asc' });
@@ -77,12 +90,20 @@ const DetailTable = ({ rows, pw }) => {
   };
 
   const sorted = sortRows(rows, sort);
+  const arrow = (key) => (sort.key === key ? (sort.dir === 'asc' ? ' ▲' : ' ▼') : '');
 
   return (
     <div style={styles.wrap}>
-      <p style={styles.note}>※ 紙の回答は［PDF］ボタンで原本を表示できます（氏名・ご住所はマスクしています）</p>
+      <div style={styles.noteRow}>
+        <p style={styles.note}>※ 紙の回答は［PDF］ボタンで原本を表示できます（氏名・ご住所はマスクしています）</p>
+        {sort.key && (
+          <button type="button" className="detail-reset" style={styles.resetLink} onClick={() => handleSort(null)}>
+            標準の順に戻す
+          </button>
+        )}
+      </div>
 
-      <div style={styles.sortBar}>
+      <div className="detail-sortbar" style={styles.sortBar}>
         {SORT_KEYS.map(({ key, label }) => {
           const active = sort.key === key;
           return (
@@ -92,7 +113,7 @@ const DetailTable = ({ rows, pw }) => {
               onClick={() => handleSort(key)}
               style={{ ...styles.sortBtn, ...(active && styles.sortBtnActive) }}
             >
-              {label}{active && key && (sort.dir === 'asc' ? ' ▲' : ' ▼')}
+              {label}{key && arrow(key)}
             </button>
           );
         })}
@@ -104,7 +125,27 @@ const DetailTable = ({ rows, pw }) => {
           <thead>
             <tr>
               {COLUMNS.map((col) => (
-                <th key={col.key} style={{ ...styles.th, minWidth: col.minWidth }}>{col.label}</th>
+                col.sortable ? (
+                  <th
+                    key={col.key}
+                    style={{
+                      ...styles.th,
+                      ...styles.thSortable,
+                      ...(hoveredCol === col.key && styles.thHover),
+                      minWidth: col.minWidth,
+                    }}
+                    onClick={() => handleSort(col.key)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleSort(col.key); }}
+                    onMouseEnter={() => setHoveredCol(col.key)}
+                    onMouseLeave={() => setHoveredCol(null)}
+                    tabIndex={0}
+                    aria-sort={sort.key === col.key ? (sort.dir === 'asc' ? 'ascending' : 'descending') : undefined}
+                  >
+                    {col.label}{arrow(col.key)}
+                  </th>
+                ) : (
+                  <th key={col.key} style={{ ...styles.th, minWidth: col.minWidth }}>{col.label}</th>
+                )
               ))}
             </tr>
           </thead>
@@ -147,7 +188,17 @@ const DetailTable = ({ rows, pw }) => {
 
 const styles = {
   wrap: { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' },
-  note: { margin: '0 0 8px', fontSize: 12, color: '#5a7a9a' },
+  noteRow: { display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', columnGap: 12, marginBottom: 8 },
+  note: { margin: 0, fontSize: 12, color: '#5a7a9a' },
+  resetLink: {
+    padding: 0,
+    fontSize: 12,
+    color: '#2563eb',
+    background: 'none',
+    border: 'none',
+    textDecoration: 'underline',
+    cursor: 'pointer',
+  },
   sortBar: { display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
   sortBtn: {
     minHeight: 36,
@@ -183,6 +234,8 @@ const styles = {
     whiteSpace: 'nowrap',
     borderBottom: '2px solid #c9d8e8',
   },
+  thSortable: { cursor: 'pointer', userSelect: 'none' },
+  thHover: { background: '#d8e5f3' },
   td: {
     padding: '8px 12px',
     verticalAlign: 'top',

@@ -41,9 +41,13 @@ button:disabled {
 @media (min-width: 768px) {
   /* 画面の高さに固定し、表の枠の中だけをスクロールさせる（列名の sticky のため） */
   .detail-layout { height: 100dvh; min-height: 0 !important; }
+  /* 表では列ヘッダーで並び替える */
+  .detail-sortbar { display: none !important; }
 }
 
 @media (max-width: 767.98px) {
   .detail-table { display: none; }
+  /* カードには［標準］ボタンがあるため出さない */
+  .detail-reset { display: none; }
   .detail-cards { display: flex; }
 }
