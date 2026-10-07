@@ -91,7 +91,7 @@ const SongProfile = ({ rows, q1Key, q2Key, q3Key, songName }) => {
           </ResponsiveContainer>
         </div>
         <div>
-          <p style={MINI_TH}>認知経路</p>
+          <p style={MINI_TH}>知ったきっかけ</p>
           <HBarChart data={q2Data} height={Math.max(100, q2Data.length * 20 + 16)}
             fill="#16a34a" fontSize={9} radius={2} tooltip={<BarTip />} />
         </div>
@@ -143,7 +143,7 @@ const Dashboard = ({ pw, initialData, onUnauthorized, onLogout }) => {
   }
 
   return (
-    <div style={view === 'detail' ? styles.bgDetail : styles.bg}>
+    <div className={view === 'detail' ? 'detail-layout' : undefined} style={styles.bg}>
       {/* ── Header ── */}
       <header style={styles.header}>
         <div style={styles.headerInner}>
@@ -204,8 +204,8 @@ const Dashboard = ({ pw, initialData, onUnauthorized, onLogout }) => {
             </ResponsiveContainer>
           </StatCard>
 
-          {/* 認知経路 */}
-          <StatCard title="認知経路">
+          {/* 知ったきっかけ */}
+          <StatCard title="知ったきっかけ">
             <p style={styles.note}>※複数回答あり</p>
             <HBarChart data={stats.q2.data} height={Math.max(CHART_H, stats.q2.data.length * 36 + 24)}
               fill="#16a34a" fontSize={11} labelFontSize={12} tooltip={<BarTip />} />
@@ -380,13 +380,6 @@ const Dashboard = ({ pw, initialData, onUnauthorized, onLogout }) => {
 const styles = {
   bg: {
     minHeight: '100vh',
-    display: 'flex',
-    flexDirection: 'column',
-    background: '#f0f4fa',
-  },
-  // 明細ビューは画面の高さに固定し、表の枠の中だけをスクロールさせる（列名の sticky のため）
-  bgDetail: {
-    height: '100dvh',
     display: 'flex',
     flexDirection: 'column',
     background: '#f0f4fa',
