@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { API_URL } from '../utils/sheets';
 
 // sortable: 表では列ヘッダーのクリックで並び替えできる列
 const COLUMNS = [
@@ -14,7 +13,7 @@ const COLUMNS = [
   { key: 'name', label: 'お名前', minWidth: 100, sortable: true },
   { key: 'region', label: '地域', minWidth: 110, sortable: true },
   { key: 'q8', label: '感想', minWidth: 320 },
-  { key: 'source', label: '出所', nowrap: true, sortable: true },
+  { key: 'source', label: '出所', nowrap: true },
   { key: 'note', label: '備考', minWidth: 140 },
 ];
 
@@ -22,53 +21,34 @@ const COLUMNS = [
 const CARD_FIELDS = COLUMNS.filter((c) => c.key !== 'method' && c.key !== 'timestamp');
 
 // カード形式の並び替えボタン（表は列ヘッダーで並び替える）
-const SORT_KEYS = [
-  { key: null, label: '標準' },
-  ...COLUMNS.filter((c) => c.sortable).map(({ key, label }) => ({ key, label })),
-];
+const SORT_KEYS = COLUMNS.filter((c) => c.sortable).map(({ key, label }) => ({ key, label }));
 
 const METHOD_LABEL = {
   電子: { background: '#dbeafe', color: '#1d4ed8' },
   紙: { background: '#dcfce7', color: '#15803d' },
 };
 
-// 原本画像はGAS経由で配信する（GASがオーナー権限で読み出すため、Googleアカウント不要）
-const imageUrl = (pw, image) => `${API_URL}?pw=${encodeURIComponent(pw)}&img=${encodeURIComponent(image)}`;
-
-const comparePage = (a, b) => {
-  const na = parseInt(a, 10), nb = parseInt(b, 10);
-  if (Number.isNaN(na) || Number.isNaN(nb)) return Number.isNaN(na) - Number.isNaN(nb);
-  return na - nb;
-};
-
-// 出所は元ファイル名 → ページ番号（数値）の順で比較する。それ以外は文字列比較
-const compareValues = (key, a, b) =>
-  key === 'source'
-    ? a.file.localeCompare(b.file, 'ja') || comparePage(a.page, b.page)
-    : a[key].localeCompare(b[key], 'ja');
-
 // 空の値は昇順・降順にかかわらず末尾。同値はAPIの順序を保つ
 const sortRows = (rows, { key, dir }) => {
-  if (!key) return rows;
   const sign = dir === 'desc' ? -1 : 1;
   return rows
     .map((row, i) => ({ row, i }))
     .sort((a, b) => {
       const ea = !a.row[key], eb = !b.row[key];
       if (ea || eb) return (ea - eb) || a.i - b.i;
-      return sign * compareValues(key, a.row, b.row) || a.i - b.i;
+      return sign * a.row[key].localeCompare(b.row[key], 'ja') || a.i - b.i;
     })
     .map(({ row }) => row);
 };
 
 // 方法：画像のある紙の回答は［PDF］ボタン、それ以外はラベル
-const MethodCell = ({ row, pw }) => {
+const MethodCell = ({ row, onOpenPdf }) => {
   if (row.method === '紙' && row.image) {
     return (
       <button
         type="button"
         style={styles.pdfBtn}
-        onClick={() => window.open(imageUrl(pw, row.image), '_blank', 'noopener')}
+        onClick={() => onOpenPdf(row.image)}
       >
         PDF
       </button>
@@ -78,14 +58,13 @@ const MethodCell = ({ row, pw }) => {
   return <span style={{ ...styles.methodLabel, ...(METHOD_LABEL[row.method] ?? styles.methodOther) }}>{row.method}</span>;
 };
 
-const DetailTable = ({ rows, pw }) => {
-  // 表とカードで共有する
-  const [sort, setSort] = useState({ key: null, dir: 'asc' });
+const DetailTable = ({ rows, onOpenPdf }) => {
+  // 表とカードで共有する。初期表示は日時順
+  const [sort, setSort] = useState({ key: 'timestamp', dir: 'asc' });
   const [hoveredCol, setHoveredCol] = useState(null);
 
   const handleSort = (key) => {
-    if (!key) setSort({ key: null, dir: 'asc' });
-    else if (sort.key === key) setSort({ key, dir: sort.dir === 'asc' ? 'desc' : 'asc' });
+    if (sort.key === key) setSort({ key, dir: sort.dir === 'asc' ? 'desc' : 'asc' });
     else setSort({ key, dir: 'asc' });
   };
 
@@ -96,11 +75,6 @@ const DetailTable = ({ rows, pw }) => {
     <div style={styles.wrap}>
       <div style={styles.noteRow}>
         <p style={styles.note}>※ 紙の回答は［PDF］ボタンで原本を表示できます（氏名・ご住所はマスクしています）</p>
-        {sort.key && (
-          <button type="button" className="detail-reset" style={styles.resetLink} onClick={() => handleSort(null)}>
-            標準の順に戻す
-          </button>
-        )}
       </div>
 
       <div className="detail-sortbar" style={styles.sortBar}>
@@ -108,12 +82,12 @@ const DetailTable = ({ rows, pw }) => {
           const active = sort.key === key;
           return (
             <button
-              key={label}
+              key={key}
               type="button"
               onClick={() => handleSort(key)}
               style={{ ...styles.sortBtn, ...(active && styles.sortBtnActive) }}
             >
-              {label}{key && arrow(key)}
+              {label}{arrow(key)}
             </button>
           );
         })}
@@ -154,7 +128,7 @@ const DetailTable = ({ rows, pw }) => {
               <tr key={i} style={{ background: i % 2 ? '#f6f9fd' : '#fff' }}>
                 {COLUMNS.map((col) => (
                   <td key={col.key} style={{ ...styles.td, whiteSpace: col.nowrap ? 'nowrap' : 'pre-wrap' }}>
-                    {col.key === 'method' ? <MethodCell row={row} pw={pw} /> : row[col.key]}
+                    {col.key === 'method' ? <MethodCell row={row} onOpenPdf={onOpenPdf} /> : row[col.key]}
                   </td>
                 ))}
               </tr>
@@ -168,7 +142,7 @@ const DetailTable = ({ rows, pw }) => {
         {sorted.map((row, i) => (
           <li key={i} style={styles.card}>
             <div style={styles.cardHead}>
-              <MethodCell row={row} pw={pw} />
+              <MethodCell row={row} onOpenPdf={onOpenPdf} />
               {row.timestamp && <span style={styles.cardTime}>{row.timestamp}</span>}
             </div>
             <dl style={styles.cardBody}>
@@ -190,15 +164,6 @@ const styles = {
   wrap: { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' },
   noteRow: { display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', columnGap: 12, marginBottom: 8 },
   note: { margin: 0, fontSize: 12, color: '#5a7a9a' },
-  resetLink: {
-    padding: 0,
-    fontSize: 12,
-    color: '#2563eb',
-    background: 'none',
-    border: 'none',
-    textDecoration: 'underline',
-    cursor: 'pointer',
-  },
   sortBar: { display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
   sortBtn: {
     minHeight: 36,

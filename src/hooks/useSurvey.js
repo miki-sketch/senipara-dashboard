@@ -66,9 +66,6 @@ const fileWithPage = (r) => {
   return `${text(r[COL.file])}${page ? ` p.${page}` : ''}`.trim();
 };
 
-// 紙回答の出所表示（例: "紙：SKM_001.pdf p.7"）。電子は null
-const paperSource = (r) => (isPaper(r) ? `紙：${fileWithPage(r)}` : null);
-
 // GASが日時をISO形式（UTC）で返した場合は日本時間の「YYYY/MM/DD HH:mm」にする。それ以外はそのまま
 const formatTimestamp = (v) => {
   const t = text(v);
@@ -141,7 +138,8 @@ export const computeStats = (rows) => {
     .map((r) => ({
       text: String(r[COL.q8]),
       name: isBlank(r[COL.name]) ? '未記載' : String(r[COL.name]).trim(),
-      source: paperSource(r),
+      paper: isPaper(r),
+      image: text(r[COL.image]),
       note: isBlank(r[COL.note]) ? null : String(r[COL.note]).trim(),
     }));
 
@@ -159,8 +157,6 @@ export const computeStats = (rows) => {
     region: text(r[COL.region]),
     q8: isBlank(r[COL.q8]) ? '' : String(r[COL.q8]),
     source: fileWithPage(r),
-    file: text(r[COL.file]),
-    page: text(r[COL.page]),
     note: text(r[COL.note]),
     image: text(r[COL.image]),
   }));

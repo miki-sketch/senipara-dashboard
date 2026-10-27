@@ -16,6 +16,7 @@ import { useSurvey } from '../hooks/useSurvey';
 import StatCard from './StatCard';
 import HBarChart from './HBarChart';
 import DetailTable from './DetailTable';
+import { usePdfViewer } from './PdfViewer';
 import { countBy, countMultiSelect, toChartData } from '../utils/parse';
 
 const COLORS = [
@@ -119,6 +120,7 @@ const Dashboard = ({ pw, initialData, onUnauthorized, onLogout }) => {
   const [q2OtherOpen, setQ2OtherOpen] = useState(false);
   const [q5OpenSong, setQ5OpenSong] = useState(null);
   const [view, setView] = useState('dashboard'); // 'dashboard' | 'detail'
+  const { openPdf, viewer: pdfViewer } = usePdfViewer(pw);
 
   const toggleView = () => {
     setView((v) => (v === 'dashboard' ? 'detail' : 'dashboard'));
@@ -168,7 +170,7 @@ const Dashboard = ({ pw, initialData, onUnauthorized, onLogout }) => {
 
       {view === 'detail' ? (
         <main style={{ ...styles.main, ...styles.mainDetail }}>
-          <DetailTable rows={stats.details} pw={pw} />
+          <DetailTable rows={stats.details} onOpenPdf={openPdf} />
         </main>
       ) : (
       <main style={styles.main}>
@@ -353,7 +355,15 @@ const Dashboard = ({ pw, initialData, onUnauthorized, onLogout }) => {
               <ul style={{ ...styles.commentList, maxHeight: 360, overflowY: 'auto' }}>
                 {stats.comments.map((c, i) => (
                   <li key={i} style={styles.commentItem}>
-                    <span style={styles.commentIndex}>{i + 1}</span>
+                    <div style={styles.commentSide}>
+                      <span style={styles.commentIndex}>{i + 1}</span>
+                      {c.paper && <span style={styles.paperBadge}>紙</span>}
+                      {c.paper && c.image && (
+                        <button type="button" style={styles.commentPdfBtn} onClick={() => openPdf(c.image)}>
+                          PDF
+                        </button>
+                      )}
+                    </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <span style={styles.commentText}>{c.text}</span>
                       <p style={styles.commentName}>
@@ -361,7 +371,6 @@ const Dashboard = ({ pw, initialData, onUnauthorized, onLogout }) => {
                           <span title={`要確認: ${c.note}`} style={styles.commentNote}>⚠</span>
                         )}
                         — {c.name}
-                        {c.source && <span style={styles.commentSource}>{'\u3000'}（{c.source}）</span>}
                       </p>
                     </div>
                   </li>
@@ -373,6 +382,7 @@ const Dashboard = ({ pw, initialData, onUnauthorized, onLogout }) => {
         </div>
       </main>
       )}
+      {pdfViewer}
     </div>
   );
 };
@@ -514,8 +524,30 @@ const styles = {
     borderRadius: 8, borderLeft: '3px solid #2563eb',
   },
   commentIndex: { minWidth: 24, fontSize: 12, fontWeight: 700, color: '#2563eb', paddingTop: 2 },
+  // ご感想：行番号の下に「紙」バッジとPDFボタンを縦に並べる
+  commentSide: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4, flexShrink: 0 },
+  paperBadge: {
+    padding: '0 5px',
+    fontSize: 10,
+    fontWeight: 700,
+    lineHeight: 1.6,
+    color: '#5a6b7c',
+    background: '#eef2f6',
+    border: '1px solid #d5dde6',
+    borderRadius: 4,
+  },
+  commentPdfBtn: {
+    padding: '0 5px',
+    fontSize: 10,
+    fontWeight: 700,
+    lineHeight: 1.6,
+    color: '#2563eb',
+    background: '#fff',
+    border: '1px solid #2563eb',
+    borderRadius: 4,
+    cursor: 'pointer',
+  },
   commentName: { margin: '4px 0 0', fontSize: 12, color: '#5a7a9a', textAlign: 'right' },
-  commentSource: { fontSize: 11, color: '#8aa0b5' },
   commentNote: { marginRight: 6, color: '#d97706', cursor: 'help' },
   methodBreakdown: { fontSize: 13, marginLeft: 4 },
   commentText: { fontSize: 14, color: '#2c3e50', lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' },
