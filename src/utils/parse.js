@@ -30,6 +30,19 @@ export const toChartData = (counts) =>
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'ja'))
     .map(([name, value]) => ({ name, value }));
 
+// 固定の並び順（グラフの左から）。表記はデータの選択肢に合わせる
+export const AGE_ORDER = ['10代以下', '20代', '30代', '40代', '50代', '60代', '70代以上'];
+export const VISIT_ORDER = ['初めて', '2回目以上'];
+
+// order の順で並べる。order にない値は末尾（件数の多い順）
+export const toOrderedChartData = (counts, order) => {
+  const rank = (name) => {
+    const i = order.indexOf(name);
+    return i === -1 ? order.length : i;
+  };
+  return toChartData(counts).sort((a, b) => rank(a.name) - rank(b.name));
+};
+
 // Parse numeric values, skip nulls/blanks
 export const parseNumbers = (arr) =>
   arr.map((v) => parseFloat(v)).filter((v) => !isNaN(v));

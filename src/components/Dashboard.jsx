@@ -17,7 +17,7 @@ import StatCard from './StatCard';
 import HBarChart from './HBarChart';
 import DetailTable from './DetailTable';
 import { usePdfViewer } from './PdfViewer';
-import { countBy, countMultiSelect, toChartData } from '../utils/parse';
+import { countBy, countMultiSelect, toChartData, toOrderedChartData, AGE_ORDER, VISIT_ORDER } from '../utils/parse';
 
 const COLORS = [
   '#2563eb', '#16a34a', '#dc2626', '#d97706', '#7c3aed',
@@ -68,9 +68,9 @@ const PIE_H = 280;
 const MINI_TH = { margin: '0 0 2px', fontSize: 11, fontWeight: 700, color: '#1a3a5c' };
 
 const SongProfile = ({ rows, q1Key, q2Key, q3Key, songName }) => {
-  const q1Data = toChartData(countBy(rows.map((r) => r[q1Key])));
+  const q1Data = toOrderedChartData(countBy(rows.map((r) => r[q1Key])), AGE_ORDER);
   const q2Data = toChartData(countMultiSelect(rows.map((r) => r[q2Key])));
-  const q3Data = toChartData(countBy(rows.map((r) => r[q3Key])));
+  const q3Data = toOrderedChartData(countBy(rows.map((r) => r[q3Key])), VISIT_ORDER);
 
   return (
     <div>
