@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, LabelList } from 'recharts';
+import { stackTopShape } from './stackTopShape';
 
 // アニメーションは無効（requestAnimationFrame が止まる環境では図形が0サイズのまま残るため。各グラフ共通）
 // 横棒グラフ。項目名の幅を固定するとカードが狭いときに描画領域が0になり棒が消えるため、
 // 実際の幅を測って項目名の幅を最大40%に抑え、はみ出す名前は省略する
-const HBarChart = ({ data, height, fill, fontSize = 12, labelFontSize = fontSize, radius = 4, tooltip }) => {
+// paperFill を渡すと電子（fill）／紙（paperFill）の積み上げ。data に digital / paper / value が必要
+const HBarChart = ({ data, height, fill, paperFill, fontSize = 12, labelFontSize = fontSize, radius = 4, tooltip }) => {
   const ref = useRef(null);
   const [width, setWidth] = useState(0);
 
@@ -33,8 +35,23 @@ const HBarChart = ({ data, height, fill, fontSize = 12, labelFontSize = fontSize
           <XAxis type="number" tick={{ fontSize }} allowDecimals={false} />
           <YAxis type="category" dataKey="name" tick={{ fontSize }} width={yWidth} interval={0} tickFormatter={formatTick} />
           <Tooltip content={tooltip} />
-          <Bar isAnimationActive={false} dataKey="value" fill={fill} radius={[0, radius, radius, 0]}
-            label={{ position: 'right', fontSize: labelFontSize, fill: '#1a3a5c', fontWeight: 700 }} />
+          {paperFill ? (
+            [
+              <Bar key="digital" isAnimationActive={false} dataKey="digital" stackId="m" fill={fill}>
+                {data.map((d, i) => (
+                  <Cell key={i} radius={d.paper > 0 ? 0 : [0, radius, radius, 0]} />
+                ))}
+              </Bar>,
+              // 合計ラベルは上段（紙）の右端に1つだけ出す
+              <Bar key="paper" isAnimationActive={false} dataKey="paper" stackId="m" fill={paperFill}
+                shape={stackTopShape([0, radius, radius, 0])}>
+                <LabelList dataKey="value" position="right" fontSize={labelFontSize} fill="#1a3a5c" fontWeight={700} />
+              </Bar>,
+            ]
+          ) : (
+            <Bar isAnimationActive={false} dataKey="value" fill={fill} radius={[0, radius, radius, 0]}
+              label={{ position: 'right', fontSize: labelFontSize, fill: '#1a3a5c', fontWeight: 700 }} />
+          )}
         </BarChart>
       )}
     </div>

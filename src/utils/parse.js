@@ -31,7 +31,7 @@ export const toChartData = (counts) =>
     .map(([name, value]) => ({ name, value }));
 
 // 固定の並び順（グラフの左から）。表記はデータの選択肢に合わせる
-export const AGE_ORDER = ['10代以下', '20代', '30代', '40代', '50代', '60代', '70代以上'];
+export const AGE_ORDER = ['19歳以下', '20代', '30代', '40代', '50代', '60代', '70代以上'];
 export const VISIT_ORDER = ['初めて', '2〜3回目', '4〜5回目', '6回以上'];
 
 // order の順で並べる。order にない値は末尾（件数の多い順）
@@ -41,6 +41,36 @@ export const toOrderedChartData = (counts, order) => {
     return i === -1 ? order.length : i;
   };
   return toChartData(counts).sort((a, b) => rank(a.name) - rank(b.name));
+};
+
+// 電子／紙の内訳つきで集計する。getKeys は1行から項目名の配列を返す
+export const countSplit = (rows, getKeys, isPaper) => {
+  const counts = {};
+  rows.forEach((r) => {
+    const paper = isPaper(r);
+    getKeys(r).forEach((key) => {
+      if (key == null || key === '') return;
+      const c = counts[key] ?? (counts[key] = { digital: 0, paper: 0 });
+      if (paper) c.paper += 1;
+      else c.digital += 1;
+    });
+  });
+  return counts;
+};
+
+// [{ name, digital, paper, value }] を合計の多い順に
+export const toSplitChartData = (counts) =>
+  Object.entries(counts)
+    .map(([name, { digital, paper }]) => ({ name, digital, paper, value: digital + paper }))
+    .sort((a, b) => b.value - a.value || a.name.localeCompare(b.name, 'ja'));
+
+// order の順で並べる。order にない値は末尾（合計の多い順）
+export const toOrderedSplitChartData = (counts, order) => {
+  const rank = (name) => {
+    const i = order.indexOf(name);
+    return i === -1 ? order.length : i;
+  };
+  return toSplitChartData(counts).sort((a, b) => rank(a.name) - rank(b.name));
 };
 
 // Parse numeric values, skip nulls/blanks

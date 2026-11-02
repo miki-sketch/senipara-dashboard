@@ -11,10 +11,12 @@ import {
   Pie,
   Cell,
   Legend,
+  LabelList,
 } from 'recharts';
 import { useSurvey } from '../hooks/useSurvey';
 import StatCard from './StatCard';
 import HBarChart from './HBarChart';
+import { stackTopShape } from './stackTopShape';
 import DetailTable from './DetailTable';
 import { usePdfViewer } from './PdfViewer';
 import { countBy, countMultiSelect, toChartData, toOrderedChartData, AGE_ORDER, VISIT_ORDER } from '../utils/parse';
@@ -24,15 +26,69 @@ const COLORS = [
   '#0891b2', '#db2777', '#65a30d', '#ea580c', '#6366f1',
 ];
 
+// 紙は同系統の明るい色（白と混ぜる）。濃い色＝電子／淡い色＝紙
+const lighten = (hex, t = 0.6) => {
+  const n = parseInt(hex.slice(1), 16);
+  const mix = (c) => Math.round(c + (255 - c) * t);
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(mix);
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
+};
+
+const AGE_COLOR = '#2563eb';
+const Q2_COLOR = '#16a34a';
+const REGION_COLOR = '#0891b2';
+// 来場回数の内側リング（電子／紙）。外側の区分色とぶつからないよう無彩色で固定
+const RING_DIGITAL = '#475569';
+const RING_PAPER = '#cbd5e1';
+
+const SplitLegend = ({ color, paperColor = lighten(color), prefix }) => (
+  <div style={{ display: 'flex', gap: 12, alignItems: 'center', fontSize: 11, color: '#555', margin: '0 0 4px' }}>
+    {prefix && <span>{prefix}</span>}
+    {[['電子', color], ['紙', paperColor]].map(([label, c]) => (
+      <span key={label} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+        <span style={{ width: 10, height: 10, background: c, borderRadius: 2, display: 'inline-block' }} />
+        {label}
+      </span>
+    ))}
+  </div>
+);
+
+// 合計と電子／紙の内訳。棒はデータ行そのもの、ドーナツは sector の payload に元データが入る
+const SplitTip = ({ active, payload }) => {
+  if (!active || !payload?.length) return null;
+  const p = payload[0].payload ?? {};
+  const d = p.digital !== undefined ? p : (p.payload ?? p);
+  const total = d.total ?? d.value;
+  return (
+    <div style={TIP}>
+      <p style={{ margin: 0, fontWeight: 700, color: '#1a3a5c' }}>{d.name}</p>
+      <p style={{ margin: '2px 0 0', color: '#2563eb' }}>合計 {total} 件</p>
+      <p style={{ margin: '2px 0 0', color: '#555', fontSize: 13 }}>電子 {d.digital} ／ 紙 {d.paper}</p>
+    </div>
+  );
+};
+
+// 内側リング：各区分を電子／紙に割る。0件は描かない。外側と同じ順に並べるので角度が揃う
+const toVisitRing = (data) =>
+  data.flatMap((d) => {
+    const base = { name: d.name, digital: d.digital, paper: d.paper, total: d.value };
+    return [
+      { ...base, key: `${d.name}-d`, value: d.digital, fill: RING_DIGITAL },
+      { ...base, key: `${d.name}-p`, value: d.paper, fill: RING_PAPER },
+    ];
+  }).filter((s) => s.value > 0);
+
 const RADIAN = Math.PI / 180;
-const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
-  if (percent < 0.06) return null;
-  const radius = innerRadius + (outerRadius - innerRadius) * 0.55;
+// 外側リングのラベル：件数と％の2行。狭い区分（8%未満）は省略
+const renderOuterLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, value }) => {
+  if (percent < 0.08) return null;
+  const radius = (innerRadius + outerRadius) / 2;
   const x = cx + radius * Math.cos(-midAngle * RADIAN);
   const y = cy + radius * Math.sin(-midAngle * RADIAN);
   return (
-    <text x={x} y={y} fill="#fff" textAnchor="middle" dominantBaseline="central" fontSize={12} fontWeight={700}>
-      {`${(percent * 100).toFixed(0)}%`}
+    <text x={x} y={y} fill="#fff" textAnchor="middle" fontSize={11} fontWeight={700}>
+      <tspan x={x} dy="-0.2em">{`${value}件`}</tspan>
+      <tspan x={x} dy="1.1em">{`${(percent * 100).toFixed(0)}%`}</tspan>
     </text>
   );
 };
@@ -47,23 +103,13 @@ const BarTip = ({ active, payload, label }) => {
   );
 };
 
-const PieTip = ({ active, payload }) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div style={TIP}>
-      <p style={{ margin: 0, fontWeight: 700, color: '#1a3a5c' }}>{payload[0].name}</p>
-      <p style={{ margin: '2px 0 0', color: '#2563eb' }}>{payload[0].value} 件</p>
-    </div>
-  );
-};
-
 const TIP = {
   background: '#fff', border: '1px solid #dde',
   borderRadius: 8, padding: '8px 14px', fontSize: 14,
 };
 
 const CHART_H = 240;
-const PIE_H = 280;
+const PIE_H = 320;
 
 const MINI_TH = { margin: '0 0 2px', fontSize: 11, fontWeight: 700, color: '#1a3a5c' };
 
@@ -178,30 +224,49 @@ const Dashboard = ({ pw, initialData, onUnauthorized, onLogout }) => {
 
           {/* 年代 */}
           <StatCard title="年代">
+            <SplitLegend color={AGE_COLOR} />
             <ResponsiveContainer width="100%" height={CHART_H}>
               <BarChart data={stats.q1} margin={{ top: 16, right: 12, left: -16, bottom: 48 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#eef" />
                 <XAxis dataKey="name" tick={{ fontSize: 12 }} angle={-30} textAnchor="end" interval={0} />
                 <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
-                <Tooltip content={<BarTip />} />
-                <Bar isAnimationActive={false} dataKey="value" fill="#2563eb" radius={[4, 4, 0, 0]}
-                  label={{ position: 'top', fontSize: 12, fill: '#1a3a5c', fontWeight: 700 }} />
+                <Tooltip content={<SplitTip />} />
+                <Bar isAnimationActive={false} dataKey="digital" stackId="m" fill={AGE_COLOR}>
+                  {stats.q1.map((d, i) => (
+                    <Cell key={i} radius={d.paper > 0 ? 0 : [4, 4, 0, 0]} />
+                  ))}
+                </Bar>
+                {/* 合計ラベルは上段（紙）の上に1つだけ */}
+                <Bar isAnimationActive={false} dataKey="paper" stackId="m" fill={lighten(AGE_COLOR)}
+                  shape={stackTopShape([4, 4, 0, 0])}>
+                  <LabelList dataKey="value" position="top" fontSize={12} fill="#1a3a5c" fontWeight={700} />
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </StatCard>
 
-          {/* 来場回数 */}
+          {/* 来場回数：外側＝区分ごとの合計、内側＝同じ区分を電子／紙に割ったリング */}
           <StatCard title="来場回数">
+            <SplitLegend color={RING_DIGITAL} paperColor={RING_PAPER} prefix="内側：" />
             <ResponsiveContainer width="100%" height={PIE_H}>
               <PieChart>
-                <Pie isAnimationActive={false} data={stats.q3} cx="50%" cy="40%" outerRadius={80}
-                  startAngle={90} endAngle={-270}
-                  dataKey="value" labelLine={false} label={renderCustomLabel}>
+                {/* 内側＝電子／紙（凡例には出さない） */}
+                <Pie isAnimationActive={false} data={toVisitRing(stats.q3)} cx="50%" cy="42%"
+                  innerRadius={38} outerRadius={64} startAngle={90} endAngle={-270}
+                  dataKey="value" legendType="none" label={false}>
+                  {toVisitRing(stats.q3).map((s) => (
+                    <Cell key={s.key} fill={s.fill} />
+                  ))}
+                </Pie>
+                {/* 外側＝来場回数の区分 */}
+                <Pie isAnimationActive={false} data={stats.q3} cx="50%" cy="42%"
+                  innerRadius={64} outerRadius={92} startAngle={90} endAngle={-270}
+                  dataKey="value" labelLine={false} label={renderOuterLabel}>
                   {stats.q3.map((_, i) => (
                     <Cell key={i} fill={COLORS[i % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip content={<PieTip />} />
+                <Tooltip content={<SplitTip />} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
               </PieChart>
             </ResponsiveContainer>
@@ -209,9 +274,10 @@ const Dashboard = ({ pw, initialData, onUnauthorized, onLogout }) => {
 
           {/* 知ったきっかけ */}
           <StatCard title="知ったきっかけ">
+            <SplitLegend color={Q2_COLOR} />
             <p style={styles.note}>※複数回答あり</p>
             <HBarChart data={stats.q2.data} height={Math.max(CHART_H, stats.q2.data.length * 36 + 24)}
-              fill="#16a34a" fontSize={11} labelFontSize={12} tooltip={<BarTip />} />
+              fill={Q2_COLOR} paperFill={lighten(Q2_COLOR)} fontSize={11} labelFontSize={12} tooltip={<SplitTip />} />
             {stats.q2.otherCount > 0 && (
               <div style={styles.q2Other}>
                 <button style={styles.otherToggle} onClick={() => setQ2OtherOpen((o) => !o)}>
@@ -252,11 +318,12 @@ const Dashboard = ({ pw, initialData, onUnauthorized, onLogout }) => {
 
           {/* 地域分布（全幅） */}
           <StatCard title="地域分布" style={{ gridColumn: '1 / -1' }}>
+            <SplitLegend color={REGION_COLOR} />
             {stats.region.length === 0 ? (
               <p style={{ color: '#999' }}>回答がありません</p>
             ) : (
               <HBarChart data={stats.region} height={Math.max(CHART_H, stats.region.length * 30 + 24)}
-                fill="#0891b2" tooltip={<BarTip />} />
+                fill={REGION_COLOR} paperFill={lighten(REGION_COLOR)} tooltip={<SplitTip />} />
             )}
           </StatCard>
 

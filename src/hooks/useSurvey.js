@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { fetchSurveyData, UnauthorizedError } from '../utils/sheets';
-import { countBy, countMultiSelect, splitMulti, toChartData, toOrderedChartData, AGE_ORDER, VISIT_ORDER } from '../utils/parse';
+import { countMultiSelect, splitMulti, countSplit, toSplitChartData, toOrderedSplitChartData, AGE_ORDER, VISIT_ORDER } from '../utils/parse';
 
 const CANONICAL_SONGS = [
   'バレエ音楽「シルヴィア」より「バッカスの行列」',
@@ -85,14 +85,16 @@ export const computeStats = (rows) => {
   const paperCount = rows.filter(isPaper).length;
   const digitalCount = rows.filter((r) => String(r[COL.method] ?? '').trim() === METHOD_DIGITAL).length;
 
-  const q1Data = toOrderedChartData(countBy(rows.map((r) => r[COL.q1])), AGE_ORDER);
+  // 単一選択は長さ1、無回答は空配列
+  const single = (col) => (r) => (isBlank(r[col]) ? [] : [String(r[col]).trim()]);
+  const q1Data = toOrderedSplitChartData(countSplit(rows, single(COL.q1), isPaper), AGE_ORDER);
   // 認知経路: グラフは「その他」以外。「その他」は記入内容を別に一覧表示
-  const q2Counts = countMultiSelect(rows.map((r) => r[COL.q2]));
-  const q2OtherCount = q2Counts[Q2_OTHER] ?? 0;
+  const q2Counts = countSplit(rows, (r) => splitMulti(r[COL.q2]), isPaper);
+  const q2OtherCount = q2Counts[Q2_OTHER] ? q2Counts[Q2_OTHER].digital + q2Counts[Q2_OTHER].paper : 0;
   delete q2Counts[Q2_OTHER];
-  const q2Data = toChartData(q2Counts);
-  const q3Data = toOrderedChartData(countBy(rows.map((r) => r[COL.q3])), VISIT_ORDER);
-  const regionData = toChartData(countBy(rows.map((r) => (isBlank(r[COL.region]) ? null : String(r[COL.region]).trim()))));
+  const q2Data = toSplitChartData(q2Counts);
+  const q3Data = toOrderedSplitChartData(countSplit(rows, single(COL.q3), isPaper), VISIT_ORDER);
+  const regionData = toSplitChartData(countSplit(rows, single(COL.region), isPaper));
 
   // 列3（紹介者欄）は列2の選択肢で振り分ける。両方選んだ方の記入はどちらにも載せる
   const referrerList = [];
