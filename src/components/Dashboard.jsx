@@ -195,6 +195,7 @@ const Dashboard = ({ pw, initialData, onUnauthorized, onLogout }) => {
             <ResponsiveContainer width="100%" height={PIE_H}>
               <PieChart>
                 <Pie isAnimationActive={false} data={stats.q3} cx="50%" cy="40%" outerRadius={80}
+                  startAngle={90} endAngle={-270}
                   dataKey="value" labelLine={false} label={renderCustomLabel}>
                   {stats.q3.map((_, i) => (
                     <Cell key={i} fill={COLORS[i % COLORS.length]} />
