@@ -41,8 +41,12 @@ const REGION_COLOR = '#0891b2';
 const RING_DIGITAL = '#475569';
 const RING_PAPER = '#cbd5e1';
 
-const SplitLegend = ({ color, paperColor = lighten(color), prefix }) => (
-  <div style={{ display: 'flex', gap: 12, alignItems: 'center', fontSize: 11, color: '#555', margin: '0 0 4px' }}>
+// 一覧（チップ・紹介者）の電子／紙の色
+const CHIP_TEXT = '#5b21b6';
+const REFERRER_COLOR = '#16a34a';
+
+const SplitLegend = ({ color, paperColor = lighten(color), prefix, style }) => (
+  <span style={{ display: 'flex', gap: 12, alignItems: 'center', fontSize: 11, fontWeight: 400, color: '#555', margin: '0 0 4px', ...style }}>
     {prefix && <span>{prefix}</span>}
     {[['電子', color], ['紙', paperColor]].map(([label, c]) => (
       <span key={label} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
@@ -50,7 +54,19 @@ const SplitLegend = ({ color, paperColor = lighten(color), prefix }) => (
         {label}
       </span>
     ))}
-  </div>
+  </span>
+);
+
+// その他の記入一覧（チップ）。紙はひとまわり淡い色＋「紙」バッジ
+const OtherChips = ({ items }) => (
+  <ul style={styles.otherList}>
+    {items.map((it, i) => (
+      <li key={i} style={it.paper ? { ...styles.otherItem, ...styles.otherItemPaper } : styles.otherItem}>
+        {it.paper && <span style={{ ...styles.paperBadge, marginRight: 4 }}>紙</span>}
+        {it.text}
+      </li>
+    ))}
+  </ul>
 );
 
 // 合計と電子／紙の内訳。棒はデータ行そのもの、ドーナツは sector の payload に元データが入る
@@ -288,11 +304,7 @@ const Dashboard = ({ pw, initialData, onUnauthorized, onLogout }) => {
                   stats.q2.otherList.length === 0 ? (
                     <p style={{ margin: 0, padding: '4px 16px 12px', fontSize: 13, color: '#999' }}>記入がありません</p>
                   ) : (
-                    <ul style={styles.otherList}>
-                      {stats.q2.otherList.map((text, i) => (
-                        <li key={i} style={styles.otherItem}>{text}</li>
-                      ))}
-                    </ul>
+                    <OtherChips items={stats.q2.otherList} />
                   )
                 )}
               </div>
@@ -301,15 +313,21 @@ const Dashboard = ({ pw, initialData, onUnauthorized, onLogout }) => {
 
           {/* 紹介者一覧 */}
           <StatCard title="紹介者一覧">
-            <p style={styles.note}>「団員から直接」を選んだ方の記入内容（{stats.referrers.length} 件）</p>
+            <div style={styles.noteRow}>
+              <p style={{ ...styles.note, margin: 0 }}>「団員から直接」を選んだ方の記入内容（{stats.referrers.length} 件）</p>
+              <SplitLegend color={REFERRER_COLOR} style={{ margin: 0 }} />
+            </div>
             {stats.referrers.length === 0 ? (
               <p style={{ color: '#999' }}>記入がありません</p>
             ) : (
               <ul style={{ ...styles.commentList, maxHeight: CHART_H + 40, overflowY: 'auto' }}>
-                {stats.referrers.map((text, i) => (
-                  <li key={i} style={{ ...styles.commentItem, borderLeftColor: '#16a34a' }}>
-                    <span style={{ ...styles.commentIndex, color: '#16a34a' }}>{i + 1}</span>
-                    <span style={styles.commentText}>{text}</span>
+                {stats.referrers.map((it, i) => (
+                  <li key={i} style={{ ...styles.commentItem, borderLeftColor: it.paper ? lighten(REFERRER_COLOR) : REFERRER_COLOR }}>
+                    <div style={styles.commentSide}>
+                      <span style={{ ...styles.commentIndex, color: REFERRER_COLOR }}>{i + 1}</span>
+                      {it.paper && <span style={styles.paperBadge}>紙</span>}
+                    </div>
+                    <span style={styles.commentText}>{it.text}</span>
                   </li>
                 ))}
               </ul>
@@ -402,11 +420,7 @@ const Dashboard = ({ pw, initialData, onUnauthorized, onLogout }) => {
                         <span style={{ fontSize: 11 }}>{otherOpen ? '▲ 閉じる' : '▼ 一覧を見る'}</span>
                       </button>
                       {otherOpen && (
-                        <ul style={styles.otherList}>
-                          {stats.songRanking.otherList.map((text, i) => (
-                            <li key={i} style={styles.otherItem}>{text}</li>
-                          ))}
-                        </ul>
+                        <OtherChips items={stats.songRanking.otherList} />
                       )}
                     </td>
                   </tr>
@@ -542,6 +556,7 @@ const styles = {
     gap: '16px',
   },
   note: { margin: '0 0 6px', fontSize: 12, color: '#7a9ab8' },
+  noteRow: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 12px', margin: '0 0 6px' },
   rankBadge: {
     minWidth: 26, height: 26, borderRadius: '50%',
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -580,8 +595,10 @@ const styles = {
   },
   otherItem: {
     padding: '3px 10px', background: '#ede9fe', borderRadius: 20,
-    fontSize: 13, color: '#5b21b6',
+    fontSize: 13, color: CHIP_TEXT, border: '1px solid transparent',
   },
+  // 塗りつぶし＝電子／白地に紫の枠＝紙
+  otherItemPaper: { background: '#fff', border: '1px solid #c4b5fd', color: CHIP_TEXT },
   commentList: {
     listStyle: 'none', padding: 0, margin: 0,
     display: 'flex', flexDirection: 'column', gap: 6,

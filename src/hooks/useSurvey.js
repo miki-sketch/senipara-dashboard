@@ -101,10 +101,10 @@ export const computeStats = (rows) => {
   const q2OtherList = [];
   rows.forEach((r) => {
     if (isBlank(r[COL.referrer])) return;
-    const text = String(r[COL.referrer]).trim();
+    const item = { text: String(r[COL.referrer]).trim(), paper: isPaper(r) };
     const choices = splitMulti(r[COL.q2]);
-    if (choices.includes(Q2_MEMBER)) referrerList.push(text);
-    if (choices.includes(Q2_OTHER)) q2OtherList.push(text);
+    if (choices.includes(Q2_MEMBER)) referrerList.push(item);
+    if (choices.includes(Q2_OTHER)) q2OtherList.push(item);
   });
 
   // 曲の人気ランキング（Q4:複数選択 + Q5:自由記述名寄せ）
@@ -124,7 +124,7 @@ export const computeStats = (rows) => {
       q5Normalized[canonical] = (q5Normalized[canonical] ?? 0) + 1;
       q5RowsByCanonical[canonical] = [...(q5RowsByCanonical[canonical] ?? []), r];
     } else {
-      q5OtherList.push(String(v).trim());
+      q5OtherList.push({ text: String(v).trim(), paper: isPaper(r) });
     }
   });
   const songRankingRows = CANONICAL_SONGS.map((name) => ({
