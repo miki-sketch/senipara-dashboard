@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import LoginPage from './components/LoginPage';
 import Dashboard from './components/Dashboard';
+import { Analytics } from '@vercel/analytics/react';
 
 const PW_KEY = 'senipara-dashboard-pw';
 
@@ -39,9 +40,14 @@ function App() {
     [handleLogout],
   );
 
-  return pw
-    ? <Dashboard pw={pw} initialData={initialData} onUnauthorized={handleUnauthorized} onLogout={() => handleLogout()} />
-    : <LoginPage onLogin={handleLogin} initialError={loginError} />;
+  return (
+    <>
+      {pw
+        ? <Dashboard pw={pw} initialData={initialData} onUnauthorized={handleUnauthorized} onLogout={() => handleLogout()} />
+        : <LoginPage onLogin={handleLogin} initialError={loginError} />}
+      <Analytics />
+    </>
+  );
 }
 
 export default App;
