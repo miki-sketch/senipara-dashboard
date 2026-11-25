@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { fetchSurveyData, UnauthorizedError } from '../utils/sheets';
-import { countMultiSelect, splitMulti, countSplit, toSplitChartData, toOrderedSplitChartData, AGE_ORDER, VISIT_ORDER } from '../utils/parse';
+import { countMultiSelect, splitMulti, countSplit, toSplitChartData, toOrderedSplitChartData, ageKey, AGE_ORDER, VISIT_ORDER } from '../utils/parse';
 
 const CANONICAL_SONGS = [
   'バレエ音楽「シルヴィア」より「バッカスの行列」',
@@ -87,7 +87,8 @@ export const computeStats = (rows) => {
 
   // 単一選択は長さ1、無回答は空配列
   const single = (col) => (r) => (isBlank(r[col]) ? [] : [String(r[col]).trim()]);
-  const q1Data = toOrderedSplitChartData(countSplit(rows, single(COL.q1), isPaper), AGE_ORDER);
+  // 年代: 空欄・2つ回答は「未回答」にまとめ、全回答を1件ずつ数える
+  const q1Data = toOrderedSplitChartData(countSplit(rows, (r) => [ageKey(r[COL.q1])], isPaper), AGE_ORDER);
   // 認知経路: グラフは「その他」以外。「その他」は記入内容を別に一覧表示
   const q2Counts = countSplit(rows, (r) => splitMulti(r[COL.q2]), isPaper);
   const q2OtherCount = q2Counts[Q2_OTHER] ? q2Counts[Q2_OTHER].digital + q2Counts[Q2_OTHER].paper : 0;

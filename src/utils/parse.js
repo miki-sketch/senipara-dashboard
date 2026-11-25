@@ -31,7 +31,15 @@ export const toChartData = (counts) =>
     .map(([name, value]) => ({ name, value }));
 
 // 固定の並び順（グラフの左から）。表記はデータの選択肢に合わせる
-export const AGE_ORDER = ['19歳以下', '20代', '30代', '40代', '50代', '60代', '70代以上'];
+export const AGE_UNANSWERED = '未回答';
+export const AGE_ORDER = ['19歳以下', '20代', '30代', '40代', '50代', '60代', '70代以上', AGE_UNANSWERED];
+
+// 年代を1件1区分にする。空欄と、カンマで2つ繋がった値（2つチェック／1枚2人）は「未回答」
+export const ageKey = (v) => {
+  const t = v == null ? '' : String(v).trim();
+  if (t === '' || /[,、，]/.test(t)) return AGE_UNANSWERED;
+  return t;
+};
 export const VISIT_ORDER = ['初めて', '2〜3回目', '4〜5回目', '6回以上'];
 
 // order の順で並べる。order にない値は末尾（件数の多い順）
